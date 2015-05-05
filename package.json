@@ -1,0 +1,29 @@
+{
+	"name": "uninvisible",
+	"version": "0.0.0",
+	"private": false,
+	"description": "A slick image viewing library.",
+	"author": "Noah Wilson iv <noah@beneaththeink.com>",
+	"contributors": [
+		{
+			"name": "Tyler Johnson",
+			"email": "tyler@beneaththeink.com",
+			"url": "http://github.com/tyler-johnson"
+		}
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://beneaththeink.git.beanstalkapp.com/binkify.git"
+	},
+	"main": "binkify.js",
+	"dependencies": {
+		"ramjet": "^0.4.5"
+	},
+	"devDependencies": {
+		"grunt": "~0.4.5",
+		"grunt-browserify": "~3.6.0",
+		"grunt-contrib-clean": "~0.6.0",
+		"grunt-contrib-uglify": "~0.8.1",
+		"grunt-wrap2000": "~0.1.0"
+	}
+}
