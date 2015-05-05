@@ -6,6 +6,10 @@
 	"author": "Noah Wilson iv <noah@beneaththeink.com>",
 	"contributors": [
 		{
+			"name": "Noah Wilson",
+			"email": "noah@beneaththeink.com"
+		},
+		{
 			"name": "Tyler Johnson",
 			"email": "tyler@beneaththeink.com",
 			"url": "http://github.com/tyler-johnson"
@@ -13,9 +17,9 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://beneaththeink.git.beanstalkapp.com/binkify.git"
+		"url": "https://beneaththeink.git.beanstalkapp.com/uninvisible.git"
 	},
-	"main": "binkify.js",
+	"main": "uninvisible.js",
 	"dependencies": {
 		"ramjet": "^0.4.5"
 	},
