@@ -4,7 +4,7 @@ module.exports = function(grunt) {
 		clean: [ "dist/*.js" ],
 		browserify: {
 			dist: {
-				src: "uninvisible.js",
+				src: "src/uninvisible.js",
 				dest: "dist/uninvisible.js",
 				options: {
 					browserifyOptions: { standalone: "UnInVisible" }
@@ -36,4 +36,5 @@ module.exports = function(grunt) {
 	grunt.registerTask('build-js-dist', [ 'browserify:dist', 'wrap2000:dist-js', 'uglify:dist' ]);
 	grunt.registerTask('dist', [ 'clean', 'build-js-dist' ]);
 	grunt.registerTask('default', [ 'clean', 'build-js-dist' ]);
+
 };
