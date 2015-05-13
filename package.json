@@ -19,10 +19,12 @@
     "type": "git",
     "url": "https://beneaththeink.git.beanstalkapp.com/uninvisible.git"
   },
-  "main": "uninvisible.js",
+  "main": "src/uninvisible.js",
   "dependencies": {
+    "backbone": "^1.1.2",
     "node-touch": "0.0.3",
-    "ramjet": "^0.4.5"
+    "ramjet": "^0.4.5",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "grunt": "~0.4.5",

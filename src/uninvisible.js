@@ -1,44 +1,143 @@
+/*
+ * UnInVisible
+ * (c) 2015 Beneath the Ink, Inc.
+ * MIT License
+ * Version 0.0.0
+ */
+
 var ramjet = require('ramjet');
 require('node-touch')();
+var Backbone = require('backbone');
+var _ = require('underscore');
 
-// image viewing manager
-var viewCtrl = {
-	currentImage: null, // currently viewed image
-	imageViewer: null, // container element for viewing image - a div with background set to the current image
-	captionContainer: null,
-	looper: null, // loops to continuosly request animation frame
-	horizontalOrientation: null, // image orientatation
-	isDevice: false, // set to false until gyro tells us otherwise?
-	viewFullScreen: true,
-	containerDimensionsW: null,
-	containerDimensionsH: null,
+function Uninvisible(options){
+	this.options = options || {};
+	this.images = [];
+	this.isDevice = window.isTouchDevice;
+	this.createView();
+}
 
-	open: function(img, options){
-		if(!img.offsetParent) return;
+module.exports = Uninvisible;
+
+_.extend(Uninvisible.prototype, Backbone.Events, {
+	createView: function(){
+		var imageViewer = this.imageViewer = document.createElement('div');
+		imageViewer.classList.add('uninvisible-view');
+		document.body.appendChild(imageViewer);
+
+		var captionContainer = this.captionContainer = document.createElement( 'figcaption' );
+		captionContainer.classList.add('caption-container');
+
+		var captionTitle = this.captionTitle = this.isDevice === false ? document.createElement( 'h1' ) : document.createElement('h2');
+		captionTitle.classList.add('caption-title');
+		captionContainer.appendChild( captionTitle );
+
+		var captionText = this.captionText = this.isDevice === false ? document.createElement( 'div' ) : document.createElement('h4');
+		captionText.classList.add('caption-text');
+		captionContainer.appendChild(captionText);
+
+		imageViewer.appendChild(captionContainer);
+	},
+
+	destroy: function(){
+		if(this.currentImage){
+			currentImage.close({
+				done: destroy
+			});
+		} else {
+			destroy();
+		}
+
+		function destroy(){
+			viewCtrl.imageViewer.parentNode.removeChild(imageViewer);
+		}
+	},
+
+	initImage: function(img, options){
+		if(img.tagName != 'IMG') throw new Error("Expecting an image element.");
 
 		options = options || {};
 
-		var currentImage = viewCtrl.currentImage = img;
+		var image = new UnInvImage(img, this, options);
+		this.images.push(image);
 
-		viewCtrl.containerDimensionsW = window.innerWidth;
-		viewCtrl.containerDimensionsH = window.innerHeight;
+		return image;
+	},
+});
 
-		var viewFullScreen;
-		setInitialPosition(currentImage);
 
-		viewCtrl.imageViewer.style.backgroundImage = 'url("' + currentImage.src + '")';
+function UnInvImage(img, uninvisible, options){
+	if(img.tagName != 'IMG'){
+		throw new Error("Expecting an image element.");
+	}
 
-		// make sure values are good for for proper copying of elements
-		viewCtrl.revealElements();
+	this.Uninvisible = uninvisible;
+	this.options = options = options || {};
+
+	this.sourceImage = img;
+
+	var self = this;
+	img.addEventListener('tap', function(e){
+		e.stopPropagation();
+		self.open();
+	});
+	img.classList.add('uninvisible');
+}
+
+_.extend(UnInvImage.prototype, Backbone.Events, {
+	open: function(options){
+		console.log('this: ', this);
+		var self = this;
+		var img = this.sourceImage;
+		if(!img.offsetParent) return; // Ramjet will break if no offsetParent, or ancestor elements are 'display: none' or 'position: fixed'
+
+		var Uninvisible = this.Uninvisible;
+		var imageViewer = Uninvisible.imageViewer;
+
+		var viewFullScreen,
+			horizontalOrientation;
+		var containerW = window.innerWidth,
+			containerH = window.innerHeight;
+
+		options = options || {};
+
+		var currentImage = Uninvisible.currentImage;
+		if(currentImage) return currentImage.close({
+			done: function(){
+				self.open();
+			}
+		});
+
+		Uninvisible.currentImage = this;
+
+		setInitialPosition();
+
+		imageViewer.style.backgroundImage = 'url("' + img.src + '")';
+
 
 		// create caption
-		viewCtrl.setCaption(options.captionTitle, options.captionText);
+		// check for caption passed in, then check options from when image was initialized, then look to the data-* attribute of element, finally if none found don't display
+		var title = options.captionTitle || this.options.captionTitle || img.dataset.captionTitle;
+		var text = options.captionText || this.options.captionText || img.dataset.captionText;
+
+		if(title || text) Uninvisible.captionContainer.style.display = 'block';
+		if(title){
+			Uninvisible.captionTitle.innerHTML = title;
+			Uninvisible.captionTitle.style.display = 'block';
+		}
+		if(text){
+			Uninvisible.captionText.innerHTML = text;
+			Uninvisible.captionText.style.display = 'block';
+		}
+
+		// make sure values are good for for proper copying of elements
+		this.revealElements();
 
 		try{
-			ramjet.transform(currentImage, viewCtrl.imageViewer, {
+			ramjet.transform(img, imageViewer, {
 				done: function(){
-					viewCtrl.currentImage.style.visibility = 'hidden';
-					viewCtrl.imageViewer.style.visibility = 'visible';
+					img.style.visibility = 'hidden';
+					imageViewer.style.visibility = 'visible';
 
 					if(typeof options.done === 'function') options.done();
 				}
@@ -49,17 +148,11 @@ var viewCtrl = {
 		}
 
 		// hide elements during animation
-		viewCtrl.hideElements();
+		this.hideElements();
 
-		// if the image is large enough to view full screen, init scrolling animation
-		if(viewFullScreen === true) viewCtrl.start();
-
-		function setInitialPosition(img){
+		function setInitialPosition(){
 			var imgW = img.naturalWidth;
 			var imgH = img.naturalHeight;
-
-			var containerW = viewCtrl.containerDimensionsW;
-			var containerH = viewCtrl.containerDimensionsH;
 
 			if((imgW < 325 && containerW > 900) || (imgH < 325 && containerH > 900)){
 				// image is small, and will probably look bad when full screen, so don't display full screen
@@ -75,346 +168,169 @@ var viewCtrl = {
 					hDif = SIZE;
 				}
 
-				viewCtrl.imageViewer.style.backgroundSize = wDif  + '% ' + hDif  + '%';
+				imageViewer.style.backgroundSize = wDif  + '% ' + hDif  + '%';
 
 				viewFullScreen = false;
 			} else {
-				viewCtrl.imageViewer.style.backgroundSize = 'cover';
-				viewCtrl.horizontalOrientation = imgW / imgH > containerW / containerH ? true : false;
+				imageViewer.style.backgroundSize = 'cover';
+				horizontalOrientation = imgW / imgH > containerW / containerH ? true : false;
 				viewFullScreen = true;
 			}
 		}
+
+		// if the image is large enough to view full screen, init scrolling animation
+		if(viewFullScreen === true){
+			// viewCtrl.start();
+			var isTouching= false,
+				screenHorizontal = window.matchMedia("(orientation: landscape)").matches ? true : false,
+				mouseXDest = containerW / 2,
+				mouseYDest = containerH / 2,
+				offsetX= null, offsetY= null,
+				currentX= 50, currentY= 50,
+				gyro= false,
+				touchX= 50, touchY= 50,
+				gyroX= null, gyroY= null,
+				xDif= null, yDif= null;
+
+			function followMouse(e){
+				var x = (e.clientX / containerW) * 100;
+				var y = (e.clientY / containerH) * 100;
+
+				imageViewer.style.backgroundPosition = touchX + '% ' + touchY + '%';
+			}
+
+			function handleTouchMove(e){
+				isTouching = true;
+
+				touchX = 100 - (e.pageX / containerW) * 100;
+				touchY = 100 - (e.pageY / containerH) * 100;
+
+				imageViewer.style.backgroundPosition = touchX + '% ' + touchY + '%';
+			}
+
+			// function detectTouchEnd(e){
+			// 	if(isTouching === true) return;
+			// }
+
+			imageViewer.addEventListener("touchmove", handleTouchMove);
+			addEventListener('mousemove', followMouse);
+
+
+			// imageViewer.addEventListener('touchend', detectTouchEnd);
+		}
+
+		imageViewer.addEventListener('tap', this.closeByEvent);
+		window.addEventListener('orientationchange', this.closeViewerImmediately);
+		this.listenTo(this,'close', function(){
+			removeEventListener('mousemove', followMouse);
+			imageViewer.removeEventListener('tap', this.closeByEvent);
+			imageViewer.removeEventListener("touchmove", handleTouchMove);
+			window.addEventListener('orientationchange', this.closeViewerImmediately);
+		});
 	},
 
-	clickToOpen: function(e){
+	openByEvent: function(e){
 		e.stopPropagation();
-		viewCtrl.open(e.target);
+		this.open();
 	},
 
-	close: function(e, options){
-		if(e != null) e.stopPropagation();
+	closeByEvent: function(e){
+		e.stopPropagation();
+		this.close();
+	},
 
-		var imageViewer = viewCtrl.imageViewer;
-		var currentImage = viewCtrl.currentImage;
+	close: function(options){
+		// if(e != null) e.stopPropagation();
 
-		if(!viewCtrl.currentImage.offsetParent) return viewCtrl.closeViewerImmediately();
+		var Uninvisible = this.Uninvisible;
+		var imageViewer = Uninvisible.imageViewer;
+		var img = this.sourceImage;
+
+		if(!img.offsetParent) return this.closeViewerImmediately();
 
 		options = options || {};
 
 		// make sure values are good for for proper copying of elements
-		viewCtrl.revealElements();
+		this.revealElements();
 
 		try{
-			ramjet.transform(imageViewer, currentImage, {
+			ramjet.transform(imageViewer, img, {
 				done: function(){
-					currentImage.style.visibility = 'visible';
+					img.style.visibility = 'visible';
 					imageViewer.style.visibility = 'hidden';
 					imageViewer.style.display = 'none';
-					viewCtrl.removeCaption();
-					currentImage = null;
+					resetCaption();
+					Uninvisible.currentImage = null;
 					if(typeof options.done === 'function') options.done();
 				}
 			});
 		} catch (e) {
 			console.log('error closing: ', e.stack);
-			viewCtrl.closeViewerImmediately();
+			this.closeViewerImmediately();
 		}
 
 		// hide elements during animation
-		viewCtrl.hideElements();
+		this.hideElements();
 
-		viewCtrl.stop();
+		function resetCaption(){
+			Uninvisible.captionContainer.style.display = 'none';
+
+			Uninvisible.captionTitle.style.display = 'none';
+			Uninvisible.captionTitle.innerHTML = '';
+
+			Uninvisible.captionText.style.display = 'none';
+			Uninvisible.captionText.innerHTML = '';
+		}
 
 		document.body.style.cursor = 'auto';
+
+		this.trigger('close');
 	},
 
-	removeCaption: function(){
-		var captionContainer = viewCtrl.captionContainer;
-		if(captionContainer != null){
-			while(captionContainer.childNodes.length){
-				captionContainer.removeChild(captionContainer.childNodes[0]);
-			}
-			viewCtrl.imageViewer.removeChild(captionContainer);
-			viewCtrl.captionContainer = viewCtrl.captionTitle = viewCtrl.captionText = null;
-		}
+	closeViewerImmediately: function(){
+		var imageViewer = this.Uninvisible.imageViewer;
+		this.trigger('close');
+		imageViewer.style.visibility = 'hidden';
+		imageViewer.style.display = 'none';
 	},
 
-	setCaption: function(title, text){
-
-		// values can come dynamically passed in or as data attributes from the img html element
-		var title = title || viewCtrl.currentImage.dataset.captionTitle;
-		var text = text || viewCtrl.currentImage.dataset.captionText;
-
-		if(!title && !text) return;
-
-		var captionContainer = document.createElement( 'figcaption' );
-		captionContainer.classList.add('caption-container');
-
-		if(title){
-			var captionTitle = viewCtrl.isDevice === false ? document.createElement( 'h1' ) : document.createElement('h2');
-			captionTitle.classList.add('caption-title');
-
-			captionTitle.innerHTML = title;
-			captionContainer.appendChild( captionTitle );
-		}
-
-		if(text){
-			var captionText = viewCtrl.isDevice === false ? document.createElement( 'div' ) : document.createElement('h4');
-			captionText.classList.add('caption-text');
-
-			captionText.innerHTML = text;
-			captionContainer.appendChild(captionText);
-		}
-
-		viewCtrl.captionContainer = captionContainer;
-		viewCtrl.imageViewer.appendChild(captionContainer);
+	setCaption: function(options){
+		if(options.captionTitle) this.options.captionTitle = options.captionTitle;
+		if(options.captionText) this.options.captionText = options.captionText;
+		return this;
 	},
 
 	revealElements: function(){
-		var imageViewer = viewCtrl.imageViewer;
-		var currentImage = viewCtrl.currentImage;
+		var Uninvisible = this.Uninvisible;
+		var imageViewer = Uninvisible.imageViewer;
+		var img = Uninvisible.currentImage.sourceImage;
 
 		imageViewer.style.display = 'block';
 		imageViewer.style.visibility = 'visible';
-		if(viewCtrl.isDevice === false){
-			currentImage.style.visibility = 'visible';
-			currentImage.style.display = 'block';
+		if(Uninvisible.isDevice === false){
+			img.style.visibility = 'visible';
+			img.style.display = 'block';
 		} else {
 			// mobile was not displaying correctly, this looks smoother
-			currentImage.style.visibility = 'hidden';
-			currentImage.style.display = 'block';
+			img.style.visibility = 'hidden';
+			img.style.display = 'block';
 		}
 	},
 
 	hideElements: function(){
-		viewCtrl.currentImage.style.visibility = 'hidden';
-		viewCtrl.imageViewer.style.visibility = 'hidden';
+		var Uninvisible = this.Uninvisible;
+		Uninvisible.currentImage.sourceImage.style.visibility = 'hidden';
+		Uninvisible.imageViewer.style.visibility = 'hidden';
 	},
 
-	closeViewerImmediately: function(){
-		viewCtrl.imageViewer.style.visibility = 'hidden';
-		viewCtrl.imageViewer.style.display = 'none';
-
-		viewCtrl.stop();
+	destroy: function(e){
+		img.removeEventListener('tap', function(e){
+			viewCtrl.open(img, options);
+		}, true);
+		this.sourceImage.classList.remove('uninvisible');
 	},
 
-	start: function(){
-		var isTouching= false,
-		containerDimensionsW = viewCtrl.containerDimensionsW,
-		containerDimensionsH = viewCtrl.containerDimensionsH,
-		horizontalOrientation = viewCtrl.horizontalOrientation,
-		screenHorizontal = window.matchMedia("(orientation: landscape)").matches ? true : false,
-		mouseXDest = containerDimensionsW / 2,
-		mouseYDest = containerDimensionsH / 2,
-		offsetX= null, offsetY= null,
-		currentX= 50, currentY= 50,
-		gyro= false,
-		touchX= 50, touchY= 50,
-		gyroX= null, gyroY= null,
-		xDif= null, yDif= null;
-
-		var followMouse = viewCtrl.followMouse = function(e){
-			mouseXDest = e.clientX;
-			mouseYDest = e.clientY;
-		};
-
-		var handleTouchMove = viewCtrl.handleTouchMove = function(e){
-			isTouching = true;
-
-			touchX = 100 - (e.pageX / containerDimensionsW * 100);
-			touchY = 100 - (e.pageY / containerDimensionsH * 100);
-
-			viewCtrl.imageViewer.style.backgroundPosition = touchX + '% ' + touchY + '%';
-		};
-
-		var loop = viewCtrl.loop = function(){
-			viewCtrl.looper = requestAnimFrame(loop);
-			gyro === false ? positionImage() : gyroPositionImage();
-		};
-
-		var gyroMotion = viewCtrl.gyroMotion = function(e) {
-			if (!e.gamma && !e.beta) return;
-			gyro = true;
-			if(screenHorizontal === false){
-				if(horizontalOrientation === true){
-					// vertical device, horizontal scroll
-					gyroX = e.gamma / 0.23 + 50;
-					gyroX = gyroX >= 0 && gyroX <= 100 ? gyroX : gyroX < 0 ? 0 : 100;
-				} else {
-					// vertical device, vertical scroll
-					gyroY = e.beta / 0.23 - 133;
-					gyroY = gyroY >= 0 && gyroY <= 100 ? gyroY : gyroY < 0 ? 0 : 100;
-				}
-			} else {
-				if(horizontalOrientation === true){
-					// horizontal device, horizontal scroll
-					gyroX = e.beta / 0.23 + 50;
-					gyroX = gyroX >= 0 && gyroX <= 100 ? gyroX : gyroX < 0 ? 0 : 100;
-				} else {
-					// horizontal device, vertical scroll
-					gyroY = -e.gamma / 0.25 - 100;
-					gyroY = gyroY >= 0 && gyroY <= 100 ? gyroY : gyroY < 0 ? 0 : 100;
-				}
-			}
-		};
-
-		window.addEventListener('mousemove', viewCtrl.followMouse);
-		window.addEventListener('deviceorientation', viewCtrl.gyroMotion);
-		window.addEventListener('orientationchange', viewCtrl.closeViewerImmediately);
-
-		viewCtrl.imageViewer.addEventListener('touchmove', viewCtrl.handleTouchMove);
-		viewCtrl.imageViewer.addEventListener('touchend', detectTouchEnd);
-
-		loop();
-
-		function detectTouchEnd(e){
-			if(isTouching === true) return slideBackToGyro();
-		}
-
-		function positionImage(){
-			if(gyro === true) return;
-			var x, y;
-			if(horizontalOrientation === true){
-				var xDest = mouseXDest / containerDimensionsW * 100,
-				y = 50;
-				offsetX = (xDest - currentX) * 0.05;
-
-				x = currentX = currentX + offsetX;
-
-			} else if (horizontalOrientation === false){
-				var yDest = mouseYDest / containerDimensionsH * 100,
-				x = 50;
-				offsetY = (yDest - currentY) * 0.05;
-
-				y = currentY = currentY + offsetY;
-			}
-
-			viewCtrl.imageViewer.style.backgroundPosition = x + '% ' + y + '%';
-		}
-
-		function gyroPositionImage(){
-			if (isTouching === true) return;
-			var x, y;
-
-			x = typeof gyroX === 'number' ? gyroX : 50;
-			y = typeof gyroY === 'number' ? gyroY : 50;
-
-			xDif = (x - touchX) * 0.09;
-			yDif = (y - touchY) * 0.09;
-
-			if(horizontalOrientation === true && xDif) x = touchX = touchX + xDif;
-			if(horizontalOrientation === false && yDif) y = touchY = touchY + yDif;
-			viewCtrl.imageViewer.style.backgroundPosition = (100 - x) + '% ' + (100 - y) + '%';
-		}
-
-		function slideBackToGyro(){
-			touchX = 100 - touchX;
-			touchY = 100 - touchY;
-			isTouching = false;
-		}
-	},
-
-	stop: function(){
-
-		window.removeEventListener('mousemove', viewCtrl.followMouse);
-
-		window.removeEventListener('deviceorientation', viewCtrl.gyroMotion);
-		window.addEventListener('orientationchange', viewCtrl.closeViewerImmediately);
-
-		cancelRequestAnimFrame(viewCtrl.looper);
-		viewCtrl.looper = cancelRequestAnimFrame(viewCtrl.loop);
-	}
-};
-
-function Uninvisible(options){
-	this.options = options || {};
-
-	this.images = [];
-
-	viewCtrl.isDevice = window.isTouchDevice;
-
-	if(!viewCtrl.imageViewer){
-		this.createView();
-	}
-}
-
-module.exports = Uninvisible;
-
-Uninvisible.prototype.createView = function(){
-	var imageViewer = document.createElement('div');
-	imageViewer.classList.add('uninvisible-view');
-	document.body.appendChild(imageViewer);
-
-	window.addEventListener('resize', viewCtrl.closeViewerImmediately, false);
-	imageViewer.addEventListener('tap', viewCtrl.close);
-	imageViewer.addEventListener("touchmove", viewCtrl.handleTouchMove);
-
-	viewCtrl.imageViewer = imageViewer;
-};
-
-Uninvisible.prototype.destroy = function(){
-	imageViewer.removeEventListener('tap', viewCtrl.close);
-	imageViewer.removeEventListener("touchmove", viewCtrl.handleTouchMove);
-	viewCtrl.imageViewer.parentNode.removeChild(imageViewer);
-	window.removeEventListener('resize', viewCtrl.closeViewerImmediately, false);
-	delete viewCtrl;
-};
-
-Uninvisible.prototype.initImage = function(img, options){
-	options = options || {};
-	if(img.tagName != 'IMG') throw new Error("Expecting an image element.");
-
-	var image = new ImageElement(img, options);
-	this.images.push(image);
-
-	return image;
-};
-
-function ImageElement(img, options){
-	if(img.tagName != 'IMG'){
-		throw new Error("Expecting an image element.");
-	}
-
-	var test = function(){
-		console.log('testing!!!');
-	};
-
-	this.options = options = options || {};
-
-	this.sourceImage = img;
-
-	img.addEventListener('tap', function(e){
-		viewCtrl.open(img, options);
-	}, true);
-	img.classList.add('uninvisible');
-}
-
-ImageElement.prototype.open = function(options){
-	options = options || {};
-
-	// if no caption passed in, get it from when image was initialized, and if null, it will look to the data-* attribute of element
-	if(!options.captionTitle) options.captionTitle = this.options.captionTitle;
-	if(!options.captionText) options.captionText = this.options.captionText;
-
-	viewCtrl.open(this.sourceImage, options);
-};
-
-ImageElement.prototype.close = function(options){
-	viewCtrl.close(null, options);
-};
-
-ImageElement.prototype.setCaption = function(options){
-	if(options.captionTitle) this.options.captionTitle = options.captionTitle;
-	if(options.captionText) this.options.captionText = options.captionText;
-	return this;
-};
-
-ImageElement.prototype.destroy = function(e){
-	this.sourceImage.removeEventListener('tap', function(e){
-		viewCtrl.open(img, options);
-	}, true);
-	this.sourceImage.classList.remove('uninvisible');
-};
+});
 
 window.requestAnimFrame = (function(){
 	return window.requestAnimationFrame       	||
