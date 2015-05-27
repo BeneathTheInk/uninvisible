@@ -5,6 +5,8 @@
  * Version 0.0.0
  */
 
+ window.unImages = [];
+
 var ramjet = require('ramjet');
 require('node-touch')();
 var Backbone = require('backbone');
@@ -40,8 +42,9 @@ _.extend(Uninvisible.prototype, Backbone.Events, {
 	},
 
 	destroy: function(){
+		var self = this;
 		if(this.currentImage){
-			currentImage.close({
+			this.currentImage.close({
 				done: destroy
 			});
 		} else {
@@ -49,7 +52,11 @@ _.extend(Uninvisible.prototype, Backbone.Events, {
 		}
 
 		function destroy(){
-			viewCtrl.imageViewer.parentNode.removeChild(imageViewer);
+			_.each(self.images, function(img){
+				img.destroy();
+			});
+
+			self.imageViewer.parentNode.removeChild(self.imageViewer);
 		}
 	},
 
@@ -61,7 +68,13 @@ _.extend(Uninvisible.prototype, Backbone.Events, {
 		var image = new UnInvImage(img, this, options);
 		this.images.push(image);
 
+		unImages.push(image);
+
 		return image;
+	},
+
+	closeImage: function(){
+		this.trigger('close');
 	},
 });
 
@@ -77,19 +90,25 @@ function UnInvImage(img, uninvisible, options){
 	this.sourceImage = img;
 
 	var self = this;
-	img.addEventListener('tap', function(e){
+
+	function openImg(e){
 		e.stopPropagation();
 		self.open();
-	});
+	}
+
+	img.addEventListener('tap', openImg);
 	img.classList.add('uninvisible');
+
+	this.on('destroy', function(){
+		img.removeEventListener('tap', openImg);
+	});
 }
 
 _.extend(UnInvImage.prototype, Backbone.Events, {
 	open: function(options){
-		console.log('this: ', this);
 		var self = this;
 		var img = this.sourceImage;
-		if(!img.offsetParent) return; // Ramjet will break if no offsetParent, or ancestor elements are 'display: none' or 'position: fixed'
+		if(!img.offsetParent) return; // Ramjet will break if no offsetParent
 
 		var Uninvisible = this.Uninvisible;
 		var imageViewer = Uninvisible.imageViewer;
@@ -180,68 +199,49 @@ _.extend(UnInvImage.prototype, Backbone.Events, {
 
 		// if the image is large enough to view full screen, init scrolling animation
 		if(viewFullScreen === true){
-			// viewCtrl.start();
-			var isTouching= false,
-				screenHorizontal = window.matchMedia("(orientation: landscape)").matches ? true : false,
-				mouseXDest = containerW / 2,
-				mouseYDest = containerH / 2,
-				offsetX= null, offsetY= null,
-				currentX= 50, currentY= 50,
-				gyro= false,
-				touchX= 50, touchY= 50,
-				gyroX= null, gyroY= null,
-				xDif= null, yDif= null;
+			var xDest = yDest = 50,
+				x = y = 50;
 
 			function followMouse(e){
-				var x = (e.clientX / containerW) * 100;
-				var y = (e.clientY / containerH) * 100;
-
-				imageViewer.style.backgroundPosition = touchX + '% ' + touchY + '%';
+				xDest = (e.clientX / containerW) * 100;
+				yDest = (e.clientY / containerH) * 100;
 			}
 
 			function handleTouchMove(e){
-				isTouching = true;
-
-				touchX = 100 - (e.pageX / containerW) * 100;
-				touchY = 100 - (e.pageY / containerH) * 100;
-
-				imageViewer.style.backgroundPosition = touchX + '% ' + touchY + '%';
+				xDest = 100 - (e.pageX / containerW) * 100;
+				yDest = 100 - (e.pageY / containerH) * 100;
 			}
 
-			// function detectTouchEnd(e){
-			// 	if(isTouching === true) return;
-			// }
+			function positionImage(){
+				if(horizontalOrientation === true){
+					x = x + ((xDest - x) * 0.09);
+				} else {
+					y = y + ((yDest - y) * 0.09);
+				}
+				imageViewer.style.backgroundPosition = x + '% ' + y + '%';
+			}
 
 			imageViewer.addEventListener("touchmove", handleTouchMove);
 			addEventListener('mousemove', followMouse);
 
-
-			// imageViewer.addEventListener('touchend', detectTouchEnd);
+			self.start(positionImage);
 		}
 
-		imageViewer.addEventListener('tap', this.closeByEvent);
-		window.addEventListener('orientationchange', this.closeViewerImmediately);
-		this.listenTo(this,'close', function(){
+		var closeImg = function(e){
+			e.stopPropagation();
+			self.close.bind(self)();
+		};
+
+		imageViewer.addEventListener('tap', closeImg);
+		this.on('close', function(){
 			removeEventListener('mousemove', followMouse);
-			imageViewer.removeEventListener('tap', this.closeByEvent);
+			imageViewer.removeEventListener('tap', closeImg);
 			imageViewer.removeEventListener("touchmove", handleTouchMove);
-			window.addEventListener('orientationchange', this.closeViewerImmediately);
+			Uninvisible.currentImage = null;
 		});
 	},
 
-	openByEvent: function(e){
-		e.stopPropagation();
-		this.open();
-	},
-
-	closeByEvent: function(e){
-		e.stopPropagation();
-		this.close();
-	},
-
 	close: function(options){
-		// if(e != null) e.stopPropagation();
-
 		var Uninvisible = this.Uninvisible;
 		var imageViewer = Uninvisible.imageViewer;
 		var img = this.sourceImage;
@@ -285,6 +285,7 @@ _.extend(UnInvImage.prototype, Backbone.Events, {
 		document.body.style.cursor = 'auto';
 
 		this.trigger('close');
+		this.stop();
 	},
 
 	closeViewerImmediately: function(){
@@ -292,6 +293,22 @@ _.extend(UnInvImage.prototype, Backbone.Events, {
 		this.trigger('close');
 		imageViewer.style.visibility = 'hidden';
 		imageViewer.style.display = 'none';
+		this.stop();
+	},
+
+	start: function(fn){
+		var self = this;
+		var loop = self.loop = function(){
+			// console.log('loop');
+			self.looper = requestAnimFrame(loop);
+			_.throttle(fn(),200);
+		};
+		loop();
+	},
+
+	stop: function(){
+		cancelRequestAnimFrame(this.looper);
+		this.looper = cancelRequestAnimFrame(this.loop);
 	},
 
 	setCaption: function(options){
@@ -324,9 +341,7 @@ _.extend(UnInvImage.prototype, Backbone.Events, {
 	},
 
 	destroy: function(e){
-		img.removeEventListener('tap', function(e){
-			viewCtrl.open(img, options);
-		}, true);
+		this.trigger('destroy');
 		this.sourceImage.classList.remove('uninvisible');
 	},
 
@@ -337,7 +352,7 @@ window.requestAnimFrame = (function(){
 		window.webkitRequestAnimationFrame 		||
 		window.mozRequestAnimationFrame    		||
 		function( callback ){
-		window.setTimeout(callback, 40);
+		window.setTimeout(callback, 100);
 	};
 })();
 
