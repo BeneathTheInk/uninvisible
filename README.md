@@ -1,8 +1,8 @@
 # UnInVisible
 
-## What it UnInActivates
+## What it Does
 
-UnInVisible creates a slick and beautiful image viewing experience. This is done by adding a smooth fade to and from full screen with a floaty scroll led by the mouse. On mobile devices, scroll is led by device movement for an immersive visual experience.
+UnInVisible creates a slick and beautiful image viewing experience. This is done by adding a smooth fade to and from full screen with a floaty scroll led by the mouse.
 
 ## Quick Start
 
@@ -10,18 +10,22 @@ UnInVisible is really easy to use. First add the CSS to your stylesheet and then
 
 ```javascript
 var UnInVisible = require('uninvisible');
-UnInVisible = new UnInVisible();
 
-// pass in image elements to activate
-var images = document.body.querySelectorAll('.img-expandable');
+document.addEventListener("DOMContentLoaded", function() {
+	uninvisible = new UnInVisible();
+});
+
+// pass in image nodes to activate
+var images = document.body.querySelectorAll('.my-images');
 for (var i = 0; i < images.length; i++){
-	uninvisibleImages.push(Uninvisible.initImage(images[i], {
-		captionTitle: 'I am Image #' + i,
-		captionText: 'I am image number #' + i + ' out of ' + images.length + '!!'
-	}));
+	uninvisible.initImage(images[i]);
 }
+```
 
-var uninvisibleImg = uninvisibleImages[0];
+Clicking will open the images, and you can also control them with your code:
+
+```javascript
+var uninvisibleImg = uninvisible.images[0];
 
 uninvisibleImg.setCaption({
 	captionTitle: 'New Title',
@@ -31,8 +35,8 @@ uninvisibleImg.open();
 uninvisibleImg.close();
 uninvisibleImg.destroy();
 
-// remove UnInVisible
-UnInVisible.destoy();
+// remove UnInvisible
+uninvisible.destoy();
 ```
 
 ## Methods
@@ -59,10 +63,11 @@ options:
 
 ### *img*.close()
 
-### *img*.setCaption({
-	captionTitle:
-	captionText:
-})
+### *img*.setCaption(options)
+
+options:
+ - captionTitle
+ - captionText
 
 ### *img*.destroy()
 
@@ -72,4 +77,11 @@ Successfully tested in Chrome, Safari, Safari Mobile, and Firefox, with more to 
 
 ## License
 
-MIT
+The MIT License (MIT)
+Copyright (c) 2015 Beneath the Ink
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

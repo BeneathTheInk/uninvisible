@@ -5,23 +5,22 @@
  * Version 0.0.0
  */
 
- window.unImages = [];
-
 var ramjet = require('ramjet');
 require('node-touch')();
 var Backbone = require('backbone');
 var _ = require('underscore');
 
-function Uninvisible(options){
+function UnInVisible(options){
 	this.options = options || {};
 	this.images = [];
 	this.isDevice = window.isTouchDevice;
 	this.createView();
 }
 
-module.exports = Uninvisible;
+module.exports = UnInVisible;
+window.UnInVisible = UnInVisible;
 
-_.extend(Uninvisible.prototype, Backbone.Events, {
+_.extend(UnInVisible.prototype, Backbone.Events, {
 	createView: function(){
 		var imageViewer = this.imageViewer = document.createElement('div');
 		imageViewer.classList.add('uninvisible-view');
@@ -65,10 +64,8 @@ _.extend(Uninvisible.prototype, Backbone.Events, {
 
 		options = options || {};
 
-		var image = new UnInvImage(img, this, options);
+		var image = new UnInVisibleImage(img, this, options);
 		this.images.push(image);
-
-		unImages.push(image);
 
 		return image;
 	},
@@ -79,7 +76,7 @@ _.extend(Uninvisible.prototype, Backbone.Events, {
 });
 
 
-function UnInvImage(img, uninvisible, options){
+function UnInVisibleImage(img, uninvisible, options){
 	if(img.tagName != 'IMG'){
 		throw new Error("Expecting an image element.");
 	}
@@ -104,7 +101,7 @@ function UnInvImage(img, uninvisible, options){
 	});
 }
 
-_.extend(UnInvImage.prototype, Backbone.Events, {
+_.extend(UnInVisibleImage.prototype, Backbone.Events, {
 	open: function(options){
 		var self = this;
 		var img = this.sourceImage;
@@ -214,9 +211,9 @@ _.extend(UnInvImage.prototype, Backbone.Events, {
 
 			function positionImage(){
 				if(horizontalOrientation === true){
-					x = x + ((xDest - x) * 0.09);
+					x = x + ((xDest - x) * 0.13);
 				} else {
-					y = y + ((yDest - y) * 0.09);
+					y = y + ((yDest - y) * 0.13);
 				}
 				imageViewer.style.backgroundPosition = x + '% ' + y + '%';
 			}
@@ -299,16 +296,14 @@ _.extend(UnInvImage.prototype, Backbone.Events, {
 	start: function(fn){
 		var self = this;
 		var loop = self.loop = function(){
-			// console.log('loop');
 			self.looper = requestAnimFrame(loop);
-			_.throttle(fn(),200);
+			fn();
 		};
 		loop();
 	},
 
 	stop: function(){
 		cancelRequestAnimFrame(this.looper);
-		this.looper = cancelRequestAnimFrame(this.loop);
 	},
 
 	setCaption: function(options){
