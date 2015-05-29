@@ -1,17 +1,21 @@
 .uninvisible-view{
-	width: 100%;
-	height: 100%;
-	position: absolute;
+	position: fixed;
+	top: 0%;
+	right: 0%;
+	bottom: 0%;
+	left: 0%;
 	z-index: 999;
 	display: none;
 	background: rgba(19, 19, 19, 0.88);
 	background-repeat: no-repeat;
 	background-position: 50% 50%;
-	/*-webkit-transition: background-position 0.4s;
-	-o-transition: background-position 0.4s;
-	-moz-transition: background-position 0.4s;
-	transition: background-position 0.4s;*/
+	-webkit-transition: top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s;
+	-o-transition: top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s;
+	-moz-transition: top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s;
+	-ms-transition: top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s;
+	transition: top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s;
 	cursor: url(fonts/icons/close_cursor.png) 25 25, auto;
+	opacity: 0;
 }
 .uninvisible{
 	color: red;
@@ -54,4 +58,18 @@
 	font-size: 17px;
 	letter-spacing: 0.1px;
 	display: none;
+}
+
+.no-transition {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
+}
+
+.no-scrolling {
+	height: 100%;
+	overflow: hidden;
+	position: fixed;
 }

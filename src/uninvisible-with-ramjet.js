@@ -5,9 +5,10 @@
  * Version 0.0.0
  */
 
-var _ = require('underscore');
+var ramjet = require('ramjet');
+require('node-touch')();
 var Backbone = require('backbone');
-// require('node-touch')();
+var _ = require('underscore');
 
 function UnInVisible(options){
 	this.options = options || {};
@@ -80,31 +81,31 @@ function UnInVisibleImage(img, uninvisible, options){
 		throw new Error("Expecting an image element.");
 	}
 
-	var self = this;
 	this.Uninvisible = uninvisible;
 	this.options = options = options || {};
+
 	this.sourceImage = img;
-	this.isAnimating = false;
+
+	var self = this;
 
 	function openImg(e){
 		e.stopPropagation();
 		self.open();
 	}
 
-	img.addEventListener('click', openImg);
+	img.addEventListener('tap', openImg);
 	img.classList.add('uninvisible');
 
 	this.on('destroy', function(){
-		img.removeEventListener('click', openImg);
+		img.removeEventListener('tap', openImg);
 	});
 }
 
 _.extend(UnInVisibleImage.prototype, Backbone.Events, {
 	open: function(options){
-		if(this.isAnimating) return;
-		this.isAnimating = true;
 		var self = this;
 		var img = this.sourceImage;
+		if(!img.offsetParent) return; // Ramjet will break if no offsetParent
 
 		var Uninvisible = this.Uninvisible;
 		var imageViewer = Uninvisible.imageViewer;
@@ -113,8 +114,6 @@ _.extend(UnInVisibleImage.prototype, Backbone.Events, {
 			horizontalOrientation;
 		var containerW = window.innerWidth,
 			containerH = window.innerHeight;
-		var pageX = window.scrollX,
-			pageY = window.scrollY;
 
 		options = options || {};
 
@@ -147,39 +146,31 @@ _.extend(UnInVisibleImage.prototype, Backbone.Events, {
 			Uninvisible.captionText.style.display = 'block';
 		}
 
-		imageViewer.style.display = 'block';
-		imageViewer.classList.add('no-transition');
-		var position = img.getClientRects()[0];
+		// make sure values are good for for proper copying of elements
+		this.revealElements();
 
-		imageViewer.style.top = (position.top / containerH * 100) + '%';
-		imageViewer.style.bottom = ((containerH - position.bottom) / containerH * 100) + '%';
-		imageViewer.style.left = (position.left / containerW * 100) + '%';
-		imageViewer.style.right = ((containerW - position.right) / containerW * 100) + '%';
+		try{
+			ramjet.transform(img, imageViewer, {
+				done: function(){
+					img.style.visibility = 'hidden';
+					imageViewer.style.visibility = 'visible';
 
-		// timoout
-		setTimeout(function(){
-			imageViewer.classList.remove('no-transition');
-			imageViewer.style.top = 0 + '%';
-			imageViewer.style.bottom = 0 + '%';
-			imageViewer.style.left = 0 + '%';
-			imageViewer.style.right = 0 + '%';
-			imageViewer.style.opacity = 1;
-		},10);
+					if(typeof options.done === 'function') options.done();
+				}
+			});
+		} catch (e){
+			console.log('error opening: ', e.stack);
+			return;
+		}
 
-		setTimeout(function(){
-			self.isAnimating = false;
-			document.body.classList.add('no-scrolling');
-			if(typeof options.done === 'function') options.done();
-		},410);
-
-
+		// hide elements during animation
+		this.hideElements();
 
 		function setInitialPosition(){
 			var imgW = img.naturalWidth;
 			var imgH = img.naturalHeight;
 
-			if((imgW / containerW < 0.21 && containerW > 800) || (imgH / containerH < 0.21 && containerH > 800)){
-
+			if((imgW < 325 && containerW > 900) || (imgH < 325 && containerH > 900)){
 				// image is small, and will probably look bad when full screen, so don't display full screen
 				var wDif = imgW / containerW * 100;
 				var hDif = imgH / containerH * 100;
@@ -194,7 +185,6 @@ _.extend(UnInVisibleImage.prototype, Backbone.Events, {
 				}
 
 				imageViewer.style.backgroundSize = wDif  + '% ' + hDif  + '%';
-				imageViewer.style.backgroundPosition = '50% 50%';
 
 				viewFullScreen = false;
 			} else {
@@ -239,48 +229,45 @@ _.extend(UnInVisibleImage.prototype, Backbone.Events, {
 			self.close.bind(self)();
 		};
 
-		imageViewer.addEventListener('click', closeImg);
+		imageViewer.addEventListener('tap', closeImg);
 		this.on('close', function(){
 			removeEventListener('mousemove', followMouse);
-			imageViewer.removeEventListener('click', closeImg);
+			imageViewer.removeEventListener('tap', closeImg);
 			imageViewer.removeEventListener("touchmove", handleTouchMove);
 			Uninvisible.currentImage = null;
-		});
-
-		this.on('reset-page', function(){
-			document.body.classList.remove('no-scrolling');
-			window.scrollTo(pageX, pageY);
 		});
 	},
 
 	close: function(options){
-		if(this.isAnimating) return;
-		this.isAnimating = true;
-
 		var Uninvisible = this.Uninvisible;
 		var imageViewer = Uninvisible.imageViewer;
 		var img = this.sourceImage;
-		var self = this;
-		this.trigger('reset-page');
+
+		if(!img.offsetParent) return this.closeViewerImmediately();
 
 		options = options || {};
 
-		var position = img.getClientRects()[0];
-		var containerW = window.innerWidth,
-			containerH = window.innerHeight;
+		// make sure values are good for for proper copying of elements
+		this.revealElements();
 
-		imageViewer.style.top = (position.top / containerH * 100) + '%';
-		imageViewer.style.bottom = ((containerH - position.bottom) / containerH * 100) + '%';
-		imageViewer.style.left = (position.left / containerW * 100) + '%';
-		imageViewer.style.right = ((containerW - position.right) / containerW * 100) + '%';
-		imageViewer.style.opacity = 0;
-		setTimeout(function(){
-			imageViewer.style.display = 'none';
-			resetCaption();
-			self.isAnimating = false;
-			if(typeof options.done === 'function') options.done();
-		},400);
+		try{
+			ramjet.transform(imageViewer, img, {
+				done: function(){
+					img.style.visibility = 'visible';
+					imageViewer.style.visibility = 'hidden';
+					imageViewer.style.display = 'none';
+					resetCaption();
+					Uninvisible.currentImage = null;
+					if(typeof options.done === 'function') options.done();
+				}
+			});
+		} catch (e) {
+			console.log('error closing: ', e.stack);
+			this.closeViewerImmediately();
+		}
 
+		// hide elements during animation
+		this.hideElements();
 
 		function resetCaption(){
 			Uninvisible.captionContainer.style.display = 'none';
@@ -323,6 +310,29 @@ _.extend(UnInVisibleImage.prototype, Backbone.Events, {
 		if(options.captionTitle) this.options.captionTitle = options.captionTitle;
 		if(options.captionText) this.options.captionText = options.captionText;
 		return this;
+	},
+
+	revealElements: function(){
+		var Uninvisible = this.Uninvisible;
+		var imageViewer = Uninvisible.imageViewer;
+		var img = Uninvisible.currentImage.sourceImage;
+
+		imageViewer.style.display = 'block';
+		imageViewer.style.visibility = 'visible';
+		if(Uninvisible.isDevice === false){
+			img.style.visibility = 'visible';
+			img.style.display = 'block';
+		} else {
+			// mobile was not displaying correctly, this looks smoother
+			img.style.visibility = 'hidden';
+			img.style.display = 'block';
+		}
+	},
+
+	hideElements: function(){
+		var Uninvisible = this.Uninvisible;
+		Uninvisible.currentImage.sourceImage.style.visibility = 'hidden';
+		Uninvisible.imageViewer.style.visibility = 'hidden';
 	},
 
 	destroy: function(e){
