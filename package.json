@@ -22,8 +22,8 @@
   "main": "src/uninvisible.js",
   "dependencies": {
     "backbone": "^1.1.2",
-    "node-touch": "0.0.3",
-    "ramjet": "^0.4.5",
+    "lie": "^2.9.1",
+    "tapjs": "^1.0.6",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
