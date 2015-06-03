@@ -1,6 +1,6 @@
 {
   "name": "uninvisible",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "A slick image viewing library.",
   "author": "Beneath the Ink <info@beneaththeink.com>",
@@ -12,12 +12,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://beneaththeink.git.beanstalkapp.com/uninvisible.git"
+    "url": "https://github.com/BeneathTheInk/uninvisible.git"
   },
-  "main": "src/uninvisible.js",
+  "main": "lib/uninvisible.js",
   "dependencies": {
-    "tapjs": "^1.0.6",
-    "underscore": "^1.8.3"
+    "tapjs": "~1.0.6",
+    "underscore": "~1.8.3"
   },
   "scripts": {
     "prepublish": "grunt"
@@ -25,9 +25,9 @@
   "devDependencies": {
     "grunt": "~0.4.5",
     "grunt-browserify": "~3.6.0",
-    "grunt-cli": "^0.1.13",
+    "grunt-cli": "~0.1.13",
     "grunt-contrib-clean": "~0.6.0",
-    "grunt-contrib-copy": "^0.8.0",
+    "grunt-contrib-copy": "~0.8.0",
     "grunt-contrib-uglify": "~0.8.1",
     "grunt-wrap2000": "~0.1.0"
   }
