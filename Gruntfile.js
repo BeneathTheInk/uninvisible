@@ -25,6 +25,17 @@ module.exports = function(grunt) {
 				src: "dist/uninvisible.js",
 				dest: "dist/uninvisible.min.js"
 			}
+		},
+		copy: {
+			dist: {
+				files: [{
+					expand: true,
+					cwd: "lib/images/",
+					src: [ "*" ],
+					dest: "dist/images/",
+					filter: 'isFile'
+				}]
+			}
 		}
 	});
 
@@ -32,9 +43,10 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-browserify');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-wrap2000');
+	grunt.loadNpmTasks('grunt-contrib-copy');
 
 	grunt.registerTask('build-js-dist', [ 'browserify:dist', 'wrap2000:dist-js', 'uglify:dist' ]);
-	grunt.registerTask('dist', [ 'clean', 'build-js-dist' ]);
-	grunt.registerTask('default', [ 'clean', 'build-js-dist' ]);
+	grunt.registerTask('dist', [ 'clean', 'copy', 'build-js-dist' ]);
+	grunt.registerTask('default', [ 'dist' ]);
 
 };

@@ -12,9 +12,7 @@
 	cursor: url(fonts/icons/close_cursor.png) 25 25, auto;
 	opacity: 0;
 }
-.uninvisible{
-	color: red;
-}
+
 .uninvisible:hover { cursor: url(fonts/icons/plus_cursor.png) 25 25, auto; }
 
 .uninvisible-view .caption-container{

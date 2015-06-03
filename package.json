@@ -1,18 +1,13 @@
 {
   "name": "uninvisible",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
   "description": "A slick image viewing library.",
-  "author": "Noah Wilson iv <noah@beneaththeink.com>",
+  "author": "Beneath the Ink <info@beneaththeink.com>",
   "contributors": [
     {
       "name": "Noah Wilson",
       "email": "noah@beneaththeink.com"
-    },
-    {
-      "name": "Tyler Johnson",
-      "email": "tyler@beneaththeink.com",
-      "url": "http://github.com/tyler-johnson"
     }
   ],
   "repository": {
@@ -21,15 +16,18 @@
   },
   "main": "src/uninvisible.js",
   "dependencies": {
-    "backbone": "^1.1.2",
-    "lie": "^2.9.1",
     "tapjs": "^1.0.6",
     "underscore": "^1.8.3"
+  },
+  "scripts": {
+    "prepublish": "grunt"
   },
   "devDependencies": {
     "grunt": "~0.4.5",
     "grunt-browserify": "~3.6.0",
+    "grunt-cli": "^0.1.13",
     "grunt-contrib-clean": "~0.6.0",
+    "grunt-contrib-copy": "^0.8.0",
     "grunt-contrib-uglify": "~0.8.1",
     "grunt-wrap2000": "~0.1.0"
   }
