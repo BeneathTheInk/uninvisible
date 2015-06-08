@@ -4,7 +4,7 @@ module.exports = function(grunt) {
 		clean: [ "dist/*.js" ],
 		browserify: {
 			dist: {
-				src: "src/uninvisible.js",
+				src: "lib/uninvisible.js",
 				dest: "dist/uninvisible.js",
 				options: {
 					browserifyOptions: { standalone: "UnInVisible" }

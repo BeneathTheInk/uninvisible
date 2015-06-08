@@ -2,7 +2,7 @@
 
 ## What it Does
 
-UnInVisible creates a slick and beautiful image viewing experience. This is done by adding a smooth fade to and from full screen with a floaty scroll led by the mouse.
+UnInVisible creates a slick and beautiful image viewing experience. This is done by adding a smooth fade to and from full screen with a floaty scroll while viewing.
 
 ## Quick Start
 
@@ -15,19 +15,14 @@ document.addEventListener("DOMContentLoaded", function() {
 	uninvisible = new UnInVisible();
 });
 
-// pass in image nodes to activate
-var images = document.body.querySelectorAll('.my-images');
-for (var i = 0; i < images.length; i++){
-	uninvisible.initImage(images[i]);
-}
+var img = document.querySelector('.my-img');
+uninvisible.open(img);
+
 ```
 
-Clicking will open the images, and you can also control them with your code:
-
 ```javascript
-var uninvisibleImg = uninvisible.images[0];
 
-uninvisibleImg.setCaption({
+uninvisible.setCaption({
 	captionTitle: 'New Title',
 	captionText: 'And this is a new description of the image.'
 });
@@ -41,7 +36,7 @@ uninvisible.destoy();
 
 ## Methods
 
-### UnInVisible.initImage(img, options)
+### UnInVisible.open(img, options)
 
 options:
   - captionTitle
@@ -49,27 +44,11 @@ options:
 
 Captions can also be added directly in your HTML as `data-captionTitle` and `data-captionText`.
 
+### UnInVisible.close()
+
 ### destroy()
 
 Removes UnInVisible elements and event listeners
-
-### *img*.open(options)
-
-Allows you to open the image with your code rather than just a click
-
-options:
- - captionTitle
- - captionText
-
-### *img*.close()
-
-### *img*.setCaption(options)
-
-options:
- - captionTitle
- - captionText
-
-### *img*.destroy()
 
 ## Browser Support
 
