@@ -24,6 +24,9 @@ _.extend(UnInVisible.prototype, {
 	_createView: function(){
 		if(this.imageViewer) return;
 
+		var container = this.container = document.createElement('div');
+		container.classList.add('uninvisible-container');
+
 		var imageViewer = this.imageViewer = document.createElement('div');
 		imageViewer.classList.add('uninvisible-view');
 
@@ -38,15 +41,16 @@ _.extend(UnInVisible.prototype, {
 		captionText.classList.add('caption-text');
 		captionContainer.appendChild(captionText);
 
+		container.appendChild(imageViewer);
 		imageViewer.appendChild(captionContainer);
 	},
 
 	_renderView: function(){
-		document.body.appendChild(this.imageViewer);
+		document.body.appendChild(this.container);
 	},
 
 	_removeView: function(){
-		if(this.imageViewer && this.imageViewer.parentNode) this.imageViewer.parentNode.removeChild(this.imageViewer);
+		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
 	open: function(img, options, cb){ // !! return a promise and nodeify
@@ -110,7 +114,10 @@ _.extend(UnInVisible.prototype, {
 
 			if(imgW < containerW || imgH < containerH){
 				imageViewer.style.backgroundPosition = '50% 50%';
-				if(imgW > containerW || imgH > containerH) viewFullScreen = true;
+				if(imgW > containerW || imgH > containerH){
+					viewFullScreen = true;
+					isHorizontal = imgW > containerW ? true : false;
+				}
 			} else {
 				imageViewer.style.backgroundSize = 'cover';
 				isHorizontal = imgW / imgH > containerW / containerH ? true : false;
@@ -158,7 +165,7 @@ _.extend(UnInVisible.prototype, {
 
 	closeViewerImmediately: function(){
 		this.emit('close');
-		this.imageViewer.style.display = 'none';
+		this.container.style.display = 'none';
 		this.resetCaption();
 	},
 
@@ -192,12 +199,13 @@ _.extend(UnInVisible.prototype, {
 		var Uninvisible = this;
 		UnInVisible.isAnimating = true;
 
+		var container = this.container;
 		var imageViewer = Uninvisible.imageViewer;
 
 		if(isOpening){
 			this.emit('open');
 			setToImgLocation();
-			imageViewer.style.display = 'block';
+			container.style.display = 'block';
 
 			turnOnTransitions();
 			addAnimationCompleteListener(onOpenComplete);
@@ -228,7 +236,7 @@ _.extend(UnInVisible.prototype, {
 			document.body.style.overflow = '';
 			document.body.style.cursor = 'auto';
 
-			imageViewer.style.display = 'none';
+			container.style.display = 'none';
 			Uninvisible.resetCaption();
 			Uninvisible.sourceImage = null;
 
@@ -247,7 +255,7 @@ _.extend(UnInVisible.prototype, {
 			imageViewer.style.bottom = 0 + '%';
 			imageViewer.style.left = 0 + '%';
 			imageViewer.style.right = 0 + '%';
-			imageViewer.style.opacity = 1;
+			container.style.opacity = 1;
 		}
 
 		function setToImgLocation(){
@@ -289,7 +297,7 @@ _.extend(UnInVisible.prototype, {
 			imageViewer.style.bottom = ((containerH - position.bottom) / containerH * 100) + '%';
 			imageViewer.style.left = (position.left / containerW * 100) + '%';
 			imageViewer.style.right = ((containerW - position.right) / containerW * 100) + '%';
-			imageViewer.style.opacity = 0;
+			container.style.opacity = 0;
 		}
 
 		function turnOnTransitions(){
@@ -298,6 +306,11 @@ _.extend(UnInVisible.prototype, {
 			imageViewer.style.mozTransition = 'top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s';
 			imageViewer.style.msTransition = 'top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s';
 			imageViewer.style.transition = 'top 0.4s, right 0.4s, bottom 0.4s, left 0.4s, opacity 0.3s';
+			container.style.webkitTransition = 'opacity 0.3s';
+			container.style.oTransition = 'opacity 0.3s';
+			container.style.mozTransition = 'opacity 0.3s';
+			container.style.msTransition = 'opacity 0.3s';
+			container.style.transition = 'opacity 0.3s';
 		}
 
 		function turnOffTransitions(){
@@ -306,6 +319,11 @@ _.extend(UnInVisible.prototype, {
 			imageViewer.style.mozTransition = 'none';
 			imageViewer.style.msTransition = 'none';
 			imageViewer.style.transition = 'none';
+			container.style.webkitTransition = 'none';
+			container.style.oTransition = 'none';
+			container.style.mozTransition = 'none';
+			container.style.msTransition = 'none';
+			container.style.transition = 'none';
 		}
 
 		function addAnimationCompleteListener(fn){
