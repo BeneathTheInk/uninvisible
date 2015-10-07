@@ -17,7 +17,6 @@
   "main": "uninvisible.js",
   "dependencies": {
     "raf": "^3.1.0",
-    "tapjs": "~1.0.6",
     "underscore": "~1.8.3"
   },
   "scripts": {
