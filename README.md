@@ -24,12 +24,19 @@ uninvisible.open(img);
 
 ## Methods
 
+### UnInVisible(options)
+
+Create a new instance of Uninvisible.
+
+options:
+  - clickEvent	Set a custom event for closing the view. Defaults to `'click'`.
+
 ### UnInVisible.open(img, options)
 
 options:
   - captionTitle
   - captionText
-	- imgContain  (the entire image will be contained in the view, no zoom.)
+	- imgContain  (the entire image will be contained in the view, no zoom. Defaults to `false`. This can also be set directly on the image element with `data-imgContain`)
 
 Captions can also be added directly in your HTML as `data-captionTitle` and `data-captionText`.
 
@@ -40,12 +47,18 @@ Captions can also be added directly in your HTML as `data-captionTitle` and `dat
 ```javascript
 
 uninvisible.setCaption({
-	captionTitle: 'New Title',
-	captionText: 'And this is a new description of the image.'
+	captionTitle: 'Caption Title',
+	captionText: 'Text to go along with the image.'
 });
 ```
 
 ### destroy()
+
+## Cursor icons
+
+When viewing an image, the cursor turns into an image mimicking a target. If you want a matching cursor icon when hovering over images, add the class 'uninvisible-parent' to the container element that the images live within. This can further be overridden by adding `data-nozoom` to the image element if there are specific images that are not to be opened.
+
+
 
 ## Browser Support
 
