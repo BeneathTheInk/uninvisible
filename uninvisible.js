@@ -1,6 +1,9 @@
 var _ = require('underscore');
-var Events = require('./events');
-if(!global.Tap) require('tapjs');
+// var Events = require('./events');
+var EventEmitter = require('events');
+var util = require('util');
+require("./tap.js");
+var raf = require('raf');
 
 function UnInVisible(options){
 	this.options = options || {};
@@ -11,15 +14,24 @@ function UnInVisible(options){
 
 	this.isAnimating = false;
 	this.isOpen = false;
+
+	if(options.containers){
+		_.each(options.containers, function(c){
+			if(c.nodeType === 1) c.classList.add('uninvisible-parent');
+		});
+	}
+
+	this._createView();
 }
 
-module.exports = window.Uninvisible = new UnInVisible();
+util.inherits(UnInVisible, EventEmitter);
 
-_.extend(UnInVisible.prototype, Events, {
-	_createView: _.once(function(){
+_.extend(UnInVisible.prototype, {
+	_createView: function(){
+		if(this.imageViewer) return;
+
 		var imageViewer = this.imageViewer = document.createElement('div');
 		imageViewer.classList.add('uninvisible-view');
-		document.body.appendChild(imageViewer);
 
 		var captionContainer = this.captionContainer = document.createElement( 'figcaption' );
 		captionContainer.classList.add('caption-container');
@@ -33,7 +45,15 @@ _.extend(UnInVisible.prototype, Events, {
 		captionContainer.appendChild(captionText);
 
 		imageViewer.appendChild(captionContainer);
-	}),
+	},
+
+	_renderView: function(){
+		document.body.appendChild(this.imageViewer);
+	},
+
+	_removeView: function(){
+		if(this.imageViewer && this.imageViewer.parentNode) this.imageViewer.parentNode.removeChild(this.imageViewer);
+	},
 
 	open: function(img, options, cb){ // !! return a promise and nodeify
 		var Uninvisible = this;
@@ -55,7 +75,7 @@ _.extend(UnInVisible.prototype, Events, {
 			node = node.parentNode;
 		}
 
-		Uninvisible._createView();
+		Uninvisible._renderView();
 		var imageViewer = Uninvisible.imageViewer;
 
 		Uninvisible.sourceImage = img;
@@ -84,7 +104,7 @@ _.extend(UnInVisible.prototype, Events, {
 		// find img dimensions and determine the ideal positioning
 		function initializeImageViewer(fromImg){
 
-			Uninvisible.trigger('open:before');
+			Uninvisible.emit('open:before');
 
 			var viewFullScreen,
 				isHorizontal;
@@ -96,7 +116,7 @@ _.extend(UnInVisible.prototype, Events, {
 
 			// check to see if image is relatively small, if so don't display full screen
 			// or if it is set to not go fullscreen
-			if((imgW / containerW < 0.21 && containerW > 800) || (imgH / containerH < 0.21 && containerH > 800)){
+			if((imgW / containerW < 0.25 && containerW > 800) || (imgH / containerH < 0.25 && containerH > 800)){
 
 				var wDif = imgW / containerW * 100;
 				var hDif = imgH / containerH * 100;
@@ -121,7 +141,7 @@ _.extend(UnInVisible.prototype, Events, {
 			}
 
 			imageViewer.style.backgroundImage = fromImg ? 'url("' + img.src + '")' : Uninvisible.sourceImage.style.backgroundImage;
-			imageViewer.style.backgroundSize = imgContain ? 'contain' : 'cover';
+			if(imgContain) imageViewer.style.backgroundSize = 'contain';
 
 			Uninvisible.setCaption(options);
 			Uninvisible._animate(true, cb);
@@ -140,10 +160,10 @@ _.extend(UnInVisible.prototype, Events, {
 		});
 	},
 
-	close: function(options, cb){// !! return a promise and nodeify
+	close: function(options, cb){
 		if(this.isAnimating) return;
 
-		this.trigger('close:before');
+		this.emit('close:before');
 
 		if(options){
 			if(typeof options === 'function' && cb == null){
@@ -157,7 +177,7 @@ _.extend(UnInVisible.prototype, Events, {
 	},
 
 	closeViewerImmediately: function(){
-		this.trigger('close');
+		this.emit('close');
 		this.imageViewer.style.display = 'none';
 		this.resetCaption();
 	},
@@ -195,16 +215,15 @@ _.extend(UnInVisible.prototype, Events, {
 		var imageViewer = Uninvisible.imageViewer;
 
 		if(isOpening){
-			this.trigger('open');
+			this.emit('open');
 			setToImgLocation();
 			imageViewer.style.display = 'block';
 
 			turnOnTransitions();
 			addAnimationCompleteListener(onOpenComplete);
 			setTimeout(function(){setToFullscreen();},10);
-			// setToFullscreen();
 		} else {
-			this.trigger('close');
+			this.emit('close');
 			addAnimationCompleteListener(onCloseComplete);
 			setToImgLocation();
 		}
@@ -217,7 +236,7 @@ _.extend(UnInVisible.prototype, Events, {
 
 			removeAnimationCompleteListener(onOpenComplete);
 
-			Uninvisible.trigger('open:after');
+			Uninvisible.emit('open:after');
 
 			if(typeof cb === 'function') cb();
 		}
@@ -226,7 +245,7 @@ _.extend(UnInVisible.prototype, Events, {
 			Uninvisible.isAnimating = false;
 			Uninvisible.isOpen = false;
 
-			document.body.style.overflow = 'visible';
+			document.body.style.overflow = '';
 			document.body.style.cursor = 'auto';
 
 			imageViewer.style.display = 'none';
@@ -236,7 +255,9 @@ _.extend(UnInVisible.prototype, Events, {
 			turnOffTransitions();
 			removeAnimationCompleteListener(onCloseComplete);
 
-			Uninvisible.trigger('close:after');
+			Uninvisible._removeView();
+
+			Uninvisible.emit('close:after');
 
 			if(typeof cb === 'function') cb();
 		}
@@ -334,17 +355,6 @@ _.extend(UnInVisible.prototype, Events, {
 			isTouching = false,
 			diffX, diffY;
 
-			// var img = Uninvisible.sourceImage;
-			// var panoAdjust = 1;
-
-			// if(img.tagName === 'IMG'){
-			// 	var imgWidth = img.naturalWidth,
-			// 		imgHeight = img.naturalHeight;
-			// 	if(imgWidth / imgHeight < 0.3 || imgHeight / imgWidth < 0.3){
-			// 		panoAdjust = isHorizontal ? ;
-			// 	}
-			// }
-
 		followMouse = _.throttle(function(e){
 			xDest = (e.clientX / containerW) * 100;
 			yDest = (e.clientY / containerH) * 100;
@@ -357,11 +367,11 @@ _.extend(UnInVisible.prototype, Events, {
 
 			diffX = x - startX;
 			diffY = y - startY;
-		}
+		};
 
 		onTouchEnd = function(e){
 			isTouching = false;
-		}
+		};
 
 		handleTouchMove = _.throttle(function(e){
 			xDest = ((100 - (e.pageX / containerW) * 100) + diffX);
@@ -391,13 +401,13 @@ _.extend(UnInVisible.prototype, Events, {
 
 		var looper;
 		function loop(){
-			looper = requestAnimFrame(loop);
+			looper = raf(loop);
 			positionImage();
 		}
 		loop();
 
 		Uninvisible.on('close', function(){
-			cancelRequestAnimFrame(looper);
+			raf.cancel(looper);
 			removeEventListener('mousemove', followMouse);
 			imageViewer.removeEventListener("touchmove", handleTouchMove);
 		});
@@ -405,24 +415,9 @@ _.extend(UnInVisible.prototype, Events, {
 
 	destroy: function(){
 		if(this.isOpen) this.closeViewerImmediately();
-		this.imageViewer.parentNode.removeChild(this.imageViewer);
+		if(this.imageViewer && this.imageViewer.parentNode) this.imageViewer.parentNode.removeChild(this.imageViewer);
 	},
 });
 
-window.requestAnimFrame = (function(){
-	return window.requestAnimationFrame       	||
-		window.webkitRequestAnimationFrame 		||
-		window.mozRequestAnimationFrame    		||
-		function( callback ){
-		window.setTimeout(callback, 100);
-	};
-})();
 
-window.cancelRequestAnimFrame = ( function() {
-	return window.cancelAnimationFrame          	||
-		window.webkitCancelRequestAnimationFrame    ||
-		window.mozCancelRequestAnimationFrame       ||
-		window.oCancelRequestAnimationFrame     	||
-		window.msCancelRequestAnimationFrame        ||
-	clearTimeout;
-})();
+module.exports = UnInVisible;

@@ -14,8 +14,9 @@
     "type": "git",
     "url": "https://github.com/BeneathTheInk/uninvisible.git"
   },
-  "main": "lib/uninvisible.js",
+  "main": "uninvisible.js",
   "dependencies": {
+    "raf": "^3.1.0",
     "tapjs": "~1.0.6",
     "underscore": "~1.8.3"
   },
@@ -29,6 +30,7 @@
     "grunt-contrib-clean": "~0.6.0",
     "grunt-contrib-copy": "~0.8.0",
     "grunt-contrib-uglify": "~0.8.1",
+    "grunt-sass": "^1.0.0",
     "grunt-wrap2000": "~0.1.0"
   }
 }

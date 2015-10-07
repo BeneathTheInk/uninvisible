@@ -15,23 +15,11 @@ document.addEventListener("DOMContentLoaded", function() {
 	uninvisible = new UnInVisible();
 });
 
+<img class="my-img" />
+
 var img = document.querySelector('.my-img');
 uninvisible.open(img);
 
-```
-
-```javascript
-
-uninvisible.setCaption({
-	captionTitle: 'New Title',
-	captionText: 'And this is a new description of the image.'
-});
-uninvisibleImg.open();
-uninvisibleImg.close();
-uninvisibleImg.destroy();
-
-// remove UnInvisible
-uninvisible.destoy();
 ```
 
 ## Methods
@@ -41,14 +29,23 @@ uninvisible.destoy();
 options:
   - captionTitle
   - captionText
+	- imgContain  (the entire image will be contained in the view, no zoom.)
 
 Captions can also be added directly in your HTML as `data-captionTitle` and `data-captionText`.
 
 ### UnInVisible.close()
 
-### destroy()
+### uninvisible.setCaption()
 
-Removes UnInVisible elements and event listeners
+```javascript
+
+uninvisible.setCaption({
+	captionTitle: 'New Title',
+	captionText: 'And this is a new description of the image.'
+});
+```
+
+### destroy()
 
 ## Browser Support
 

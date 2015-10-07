@@ -4,13 +4,23 @@ module.exports = function(grunt) {
 		clean: [ "dist/*.js" ],
 		browserify: {
 			dist: {
-				src: "lib/uninvisible.js",
+				src: "uninvisible.js",
 				dest: "dist/uninvisible.js",
 				options: {
 					browserifyOptions: { standalone: "UnInVisible" }
 				}
 			}
 		},
+		sass: {
+        dist: {
+					options: {
+						noCache: true
+					},
+          files: {
+              'dist/uninvisible.css': 'uninvisible.scss'
+          }
+        }
+    },
 		wrap2000: {
 			"dist-js": {
 				src: 'dist/uninvisible.js',
@@ -30,7 +40,7 @@ module.exports = function(grunt) {
 			dist: {
 				files: [{
 					expand: true,
-					cwd: "lib/images/",
+					cwd: "images/",
 					src: [ "*" ],
 					dest: "dist/images/",
 					filter: 'isFile'
@@ -44,9 +54,10 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-wrap2000');
 	grunt.loadNpmTasks('grunt-contrib-copy');
+	grunt.loadNpmTasks('grunt-sass');
 
 	grunt.registerTask('build-js-dist', [ 'browserify:dist', 'wrap2000:dist-js', 'uglify:dist' ]);
-	grunt.registerTask('dist', [ 'clean', 'copy', 'build-js-dist' ]);
+	grunt.registerTask('dist', [ 'clean', 'build-js-dist', 'sass:dist' ]);
 	grunt.registerTask('default', [ 'dist' ]);
 
 };
