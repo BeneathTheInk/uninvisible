@@ -108,26 +108,9 @@ _.extend(UnInVisible.prototype, {
 			var imgW = img.naturalWidth,
 				imgH = img.naturalHeight;
 
-			// check to see if image is relatively small, if so don't display full screen
-			// or if it is set to not go fullscreen
-			if((imgW / containerW < 0.25 && containerW > 800) || (imgH / containerH < 0.25 && containerH > 800)){
-
-				var wDif = imgW / containerW * 100;
-				var hDif = imgH / containerH * 100;
-
-				var SIZE = 83;
-				if(wDif > hDif){
-					hDif = (SIZE / wDif) * hDif;
-					wDif = SIZE;
-				} else {
-					wDif = (SIZE / hDif) * wDif;
-					hDif = SIZE;
-				}
-
-				imageViewer.style.backgroundSize = wDif  + '% ' + hDif  + '%';
+			if(imgW < containerW || imgH < containerH){
 				imageViewer.style.backgroundPosition = '50% 50%';
-
-				viewFullScreen = false;
+				if(imgW > containerW || imgH > containerH) viewFullScreen = true;
 			} else {
 				imageViewer.style.backgroundSize = 'cover';
 				isHorizontal = imgW / imgH > containerW / containerH ? true : false;

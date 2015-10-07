@@ -40,6 +40,8 @@ options:
 
 Captions can also be added directly in your HTML as `data-captionTitle` and `data-captionText`.
 
+Images will be not be expanded further than their natural width and height. If you want a deeper zoom, you'll need to increase the size of your original image.
+
 ### UnInVisible.close()
 
 ### uninvisible.setCaption()
@@ -57,8 +59,6 @@ uninvisible.setCaption({
 ## Cursor icons
 
 When viewing an image, the cursor turns into an image mimicking a target. If you want a matching cursor icon when hovering over images, add the class 'uninvisible-parent' to the container element that the images live within. This can further be overridden by adding `data-nozoom` to the image element if there are specific images that are not to be opened.
-
-
 
 ## Browser Support
 
