@@ -1,8 +1,6 @@
 var _ = require('underscore');
-// var Events = require('./events');
 var EventEmitter = require('events');
 var util = require('util');
-require("./tap.js");
 var raf = require('raf');
 
 function UnInVisible(options){
@@ -15,11 +13,7 @@ function UnInVisible(options){
 	this.isAnimating = false;
 	this.isOpen = false;
 
-	if(options.containers){
-		_.each(options.containers, function(c){
-			if(c.nodeType === 1) c.classList.add('uninvisible-parent');
-		});
-	}
+	this.clickEvent = options.clickEvent || 'click';
 
 	this._createView();
 }
@@ -148,16 +142,19 @@ _.extend(UnInVisible.prototype, {
 			if(viewFullScreen) Uninvisible._initMove(isHorizontal);
 		}
 
-		imageViewer.addEventListener('tap', closeImg);
+		imageViewer.addEventListener(Uninvisible.clickEvent, closeImg);
 		function closeImg(e){
 			e.stopPropagation();
 			e.preventDefault();
 			Uninvisible.close.bind(Uninvisible)();
 		}
 
-		Uninvisible.on('close', function(){
-			imageViewer.removeEventListener('tap', closeImg);
-		});
+		var xListener = function(){
+			imageViewer.removeEventListener(Uninvisible.clickEvent, closeImg);
+			Uninvisible.removeListener('close', xListener);
+		};
+
+		Uninvisible.on('close', xListener);
 	},
 
 	close: function(options, cb){
@@ -406,16 +403,19 @@ _.extend(UnInVisible.prototype, {
 		}
 		loop();
 
-		Uninvisible.on('close', function(){
+		var xListener = function(){
 			raf.cancel(looper);
 			removeEventListener('mousemove', followMouse);
 			imageViewer.removeEventListener("touchmove", handleTouchMove);
-		});
+			Uninvisible.removeListener('close', xListener);
+		};
+
+		Uninvisible.on('close', xListener);
 	},
 
 	destroy: function(){
 		if(this.isOpen) this.closeViewerImmediately();
-		if(this.imageViewer && this.imageViewer.parentNode) this.imageViewer.parentNode.removeChild(this.imageViewer);
+		this._removeView();
 	},
 });
 
