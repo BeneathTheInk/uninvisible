@@ -29,14 +29,14 @@ uninvisible.open(img);
 Create a new instance of Uninvisible.
 
 options:
-  - clickEvent	Set a custom event for closing the view. Defaults to `'click'`.
+  - clickEvent - *Set a custom event for closing the view. Defaults to `'click'`*
 
 ### UnInVisible.open(img, options)
 
 options:
   - captionTitle
   - captionText
-	- imgContain  (the entire image will be contained in the view, no zoom. Defaults to `false`. This can also be set directly on the image element with `data-imgContain`)
+	- imgContain - *the entire image will be contained in the view, no zoom. Defaults to `false`. This can also be set directly on the image element with `data-imgContain`*
 
 Captions can also be added directly in your HTML as `data-captionTitle` and `data-captionText`.
 
