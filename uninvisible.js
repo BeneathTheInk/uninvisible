@@ -71,7 +71,7 @@ _.extend(UnInVisible.prototype, {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
-	open: function(img, options, cb){ // !! return a promise and nodeify
+	open: function(img, options, cb){
 		var Uninvisible = this;
 
 		if(Uninvisible.isAnimating || Uninvisible.isOpen) return;
@@ -236,7 +236,6 @@ _.extend(UnInVisible.prototype, {
 
 
 		function _onOpenComplete(){
-			// console.log('onOpenComplete');
 			Uninvisible.isAnimating = false;
 			Uninvisible.isOpen = true;
 			document.body.style.overflow = 'hidden';
@@ -246,7 +245,7 @@ _.extend(UnInVisible.prototype, {
 
 			Uninvisible.emit('open:after');
 
-			if(typeof cb === 'function') cb();
+			// if(typeof cb === 'function') cb();
 		}
 	},
 
@@ -287,7 +286,6 @@ _.extend(UnInVisible.prototype, {
 	},
 
 	_expand: function(options){
-		// console.log('expand!!!');
 		var Uninvisible = this;
 
 		Uninvisible.emit('open:before');
@@ -359,7 +357,6 @@ _.extend(UnInVisible.prototype, {
 			}
 		}
 
-		console.log("Uninvisible orientation: ", Uninvisible.orientation);
 		Uninvisible.container.style.opacity = 1;
 	},
 
@@ -381,7 +378,6 @@ _.extend(UnInVisible.prototype, {
 		var position;
 		if(Uninvisible.sourceElement) position = Uninvisible.sourceElement.getBoundingClientRect();
 
-// !!!!!!!!!
 		// will also be null if the source element has been removed
 		if(position == null){
 			position = {
@@ -403,7 +399,6 @@ _.extend(UnInVisible.prototype, {
 	},
 
 	_turnOnTransitions: function(){
-		// console.log('turnOnTransitions');
 		var imageElement = this.imageElement;
 		var container = this.container;
 		var speed = (this.settings.animationSpeed / 1000) + 's';
