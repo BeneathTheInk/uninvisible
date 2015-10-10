@@ -2,6 +2,7 @@ var _ = require('underscore');
 var EventEmitter = require('events');
 var util = require('util');
 var raf = require('raf');
+// var Touch = require('hammerjs');
 
 function UnInVisible(options){
 	this.options = options || {};
@@ -11,6 +12,7 @@ function UnInVisible(options){
 	this.sourceElement = null;
 	this.url = null;
 	this.image = null;
+	this.sourceElement = null;
 
 	this.isAnimating = false;
 	this.isOpen = false;
@@ -24,13 +26,14 @@ function UnInVisible(options){
 		// 6 = fullscreen
 	this.settings = {
 		contain: false, // all images will be contained within the view, no zoom.
-		animationSpeed: options.animationSpeed || '0.4s',
-		trackSpeed: options.animationSpeed || 0.08
+		animationSpeed: options.animationSpeed || 400,
+		trackSpeed: options.animationSpeed ? Math.max(Math.min(options.animationSpeed, 1), 0.01) : 0.5
 	};
 
 	this.clickEvent = options.clickEvent || 'click';
 
 	this._createView();
+	// this._addTouch();
 }
 util.inherits(UnInVisible, EventEmitter);
 
@@ -105,7 +108,13 @@ _.extend(UnInVisible.prototype, {
 		if(typeof img === 'string'){
 			Uninvisible.sourceElement = null;
 			Uninvisible.url = img;
-			cb();
+
+			var newImg = Uninvisible.image = new Image();
+			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = img;
+
+			newImg.addEventListener('load', function(){
+				cb();
+			});
 		} else if(img.nodeType === 1 && img.tagName !== 'IMG'){
 			Uninvisible.image = img;
 			dataUrl = options.url || img.dataset.uninvisibleUrl;
@@ -122,8 +131,18 @@ _.extend(UnInVisible.prototype, {
 			});
 		} else if(img.nodeType === 1 && img.tagName === 'IMG') {
 			Uninvisible.image = img;
-			Uninvisible.imageElement.src = Uninvisible.url = options.url || img.src;
-			cb();
+
+			if(options.url || img.dataset.uninvisibleUrl){
+				var newImg = Uninvisible.image = new Image();
+				newImg.src = Uninvisible.imageElement.src = Uninvisible.url = options.url || img.dataset.uninvisibleUrl;
+
+				newImg.addEventListener('load', function(){
+					cb();
+				});
+			} else {
+				Uninvisible.imageElement.src = img.src;
+				cb();
+			}
 		} else {
 			return null;
 		}
@@ -172,8 +191,8 @@ _.extend(UnInVisible.prototype, {
 
 	setCaption: function(options){
 		var Uninvisible = this;
-		var title = options.captionTitle || Uninvisible.sourceElement.dataset.captionTitle;
-		var text = options.captionText || Uninvisible.sourceElement.dataset.captionText;
+		var title = options.captionTitle || Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.captionTitle : null;
+		var text = options.captionText || Uninvisible.sourceElement ?  Uninvisible.sourceElement.dataset.captionText : null;
 
 		if(title || text) Uninvisible.captionContainer.style.display = 'block';
 		if(title && title.trim().length){
@@ -205,9 +224,10 @@ _.extend(UnInVisible.prototype, {
 		Uninvisible._setToImgLocation();
 		Uninvisible.container.style.display = 'block';
 
-		Uninvisible._turnOnTransitions();
-
-		Uninvisible._addAnimationCompleteListener(_onOpenComplete);
+		setTimeout(function(){
+				Uninvisible._turnOnTransitions();
+				Uninvisible._addAnimationCompleteListener(_onOpenComplete);
+		},1);
 
 		setTimeout(function(){
 			Uninvisible._expand(options);
@@ -233,11 +253,16 @@ _.extend(UnInVisible.prototype, {
 	_close: function(){
 		var Uninvisible = this;
 		Uninvisible._turnOnTransitions();
-		UnInVisible.isAnimating = true;
+		Uninvisible.isAnimating = true;
 		this.emit('close');
 
 		Uninvisible._addAnimationCompleteListener(_onCloseComplete);
 		Uninvisible._setToImgLocation();
+
+		// FIXES BUG WHERE ANIMATION LISTENER DOESNT FIRE WHEN NOT RETURNING TO AN ELEMENT ON THE PAGE
+		setTimeout(function(){
+			if(Uninvisible.isAnimating === true) _onCloseComplete();
+		}, Uninvisible.settings.animationSpeed);
 
 		function _onCloseComplete(){
 			Uninvisible.isAnimating = false;
@@ -273,7 +298,7 @@ _.extend(UnInVisible.prototype, {
 		var imgW = Uninvisible.image.naturalWidth,
 			imgH = Uninvisible.image.naturalHeight;
 
-		var imgSizeContain = options.contain || Uninvisible.sourceElement.dataset.uninvisibleContain || Uninvisible.settings.contain;
+		var imgSizeContain = options.contain || Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain;
 // !!!!!!!!
 		if(imgSizeContain){
 			Uninvisible.orientation = 1;
@@ -340,7 +365,6 @@ _.extend(UnInVisible.prototype, {
 
 	_setImagePositionCSS: function(p){
 		var img = this.imageElement;
-		console.log(p)
 
 		if(p.top || p.top === 0) img.style.top = p.top + 'px';
 		if(p.left || p.left === 0) img.style.left = p.left + 'px';
@@ -363,8 +387,8 @@ _.extend(UnInVisible.prototype, {
 			position = {
 				left: (containerW - Uninvisible.image.naturalWidth) / 2,
 				top: (containerH - Uninvisible.image.naturalHeight) / 2,
-				width: imgW,
-				height: imgH
+				width: Uninvisible.image.imgW,
+				height: Uninvisible.image.imgH
 			};
 		}
 
@@ -382,17 +406,18 @@ _.extend(UnInVisible.prototype, {
 		// console.log('turnOnTransitions');
 		var imageElement = this.imageElement;
 		var container = this.container;
+		var speed = (this.settings.animationSpeed / 1000) + 's';
 
-		imageElement.style.webkitTransition = 'top 0.4s, height 0.4s, width 0.4s, left 0.4s, opacity 0.3s';
-		imageElement.style.oTransition = 'top 0.4s, height 0.4s, width 0.4s, left 0.4s, opacity 0.3s';
-		imageElement.style.mozTransition = 'top 0.4s, height 0.4s, width 0.4s, left 0.4s, opacity 0.3s';
-		imageElement.style.msTransition = 'top 0.4s, height 0.4s, width 0.4s, left 0.4s, opacity 0.3s';
-		imageElement.style.transition = 'top 0.4s, height 0.4s, width 0.4s, left 0.4s, opacity 0.3s';
-		container.style.webkitTransition = 'opacity 0.3s';
-		container.style.oTransition = 'opacity 0.3s';
-		container.style.mozTransition = 'opacity 0.3s';
-		container.style.msTransition = 'opacity 0.3s';
-		container.style.transition = 'opacity 0.3s';
+		imageElement.style.webkitTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
+		imageElement.style.oTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
+		imageElement.style.mozTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
+		imageElement.style.msTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
+		imageElement.style.transition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
+		container.style.webkitTransition = 'opacity ' + speed;
+		container.style.oTransition = 'opacity ' + speed;
+		container.style.mozTransition = 'opacity ' + speed;
+		container.style.msTransition = 'opacity ' + speed;
+		container.style.transition = 'opacity ' + speed;
 	},
 
 	_turnOffTransitions: function(){
@@ -427,12 +452,50 @@ _.extend(UnInVisible.prototype, {
 		imageElement.removeEventListener("transitionend", fn);
 	},
 
+	// _addTouch: function(){
+	// 	this.touch = new Touch.Manager(this.imageElement,{
+	//
+	// 	});
+	//
+	// 	var pinch = new Touch.Pinch();
+	// 	var rotate = new Touch.Rotate();
+	//
+	// 	this.touch.add([pinch, rotate]);
+	//
+	// 	this.touch.get('pinch').set({ enable: true });
+	// 	this.touch.get('rotate').set({ enable: true });
+	//
+	// 	this.touch.on("pinch", function(e) {
+	// 	    console.log('pinch',e);
+	// 	});
+	//
+	// 	this.touch.on("rotate", function(e) {
+	// 	    console.log('rotate',e);
+	// 	});
+	// },
+
 	_trackMovement: function(){
 		var Uninvisible = this;
 		var imageElement = Uninvisible.imageElement;
 
 		var orientation = Uninvisible.orientation;
 		if(orientation < 2) return;
+
+		// touch.on('rotate', function(e){
+		// 	console.log('rotate!!', e);
+		// });
+		//
+		// touch.on('pinch', function(e){
+		// 	console.log('pinch!!', e);
+		// });
+		//
+		// touch.on('pan', function(e){
+		// 	console.log('pan!!', e);
+		// });
+		//
+		// touch.on('swipe', function(e){
+		// 	console.log('swipe!!', e);
+		// });
 
 		var containerW = window.innerWidth,
 			containerH = window.innerHeight;
