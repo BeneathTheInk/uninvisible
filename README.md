@@ -30,17 +30,38 @@ Create a new instance of Uninvisible.
 
 options:
   - clickEvent - *Set a custom event for closing the view. Defaults to `'click'`*
+	- animationSpeed - *open/close speed, defaults to 400*
+	- trackSpeed - *Mouse/touch floaty move speed. a number between 0 and 1, defaults to 0.5*
 
 ### UnInVisible.open(img, options)
 
-options:
-  - captionTitle
-  - captionText
-	- imgContain - *the entire image will be contained in the view, no zoom. Defaults to `false`. This can also be set directly on the image element with `data-imgContain`*
+`img` is the element from which UnInVisible is to be expanded from. You can pass in any type of element. If it's not an image element, or if you want to open a different image, be sure to either add the attribute `data-uninvisible-url="/url/to/source.img"` directly to the element, or pass in the url with options.
 
-Captions can also be added directly in your HTML as `data-captionTitle` and `data-captionText`.
+You also have the option to pass in the url string as `img`, which will open the image without zooming from an element.
+
+options:
+	- url - *url of image to view. Allows for a different image to be opened (i.e. thumbnails -> larger image), or allows opening from non-image elements.*
+  - title - *caption title*
+  - text - *caption text*
+	- contain - *the entire image will be contained in the view, no zoom. Defaults to `false`. This can also be set directly on the image element with `data-contain`*
+
+Captions can also be added directly in your HTML as `data-uninvisible-title` and `data-uninvisible-text`.
 
 Images will be not be expanded further than their natural width and height. If you want a deeper zoom, you'll need to increase the size of your original image.
+
+**Example**
+```javascript
+	<img id="myImg" src="/path/to/thumbnail.img" data-uninvisible-url="/path/to/large-image.img" data-uninvisible-title="This is an image." />
+	<button id="btn" data-uninvisible-url="/path/to/image.img">Open Image!</button>
+
+	uninvisible.open(myImg);
+
+	uninvisible.open(btn);
+
+	uninvisible.open("/path/to/image.img", {
+		title: "Image!"
+	});
+```
 
 ### UnInVisible.close()
 
@@ -49,8 +70,8 @@ Images will be not be expanded further than their natural width and height. If y
 ```javascript
 
 uninvisible.setCaption({
-	captionTitle: 'Caption Title',
-	captionText: 'Text to go along with the image.'
+	title: 'Caption Title',
+	text: 'Text to go along with the image.'
 });
 ```
 

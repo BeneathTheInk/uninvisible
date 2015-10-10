@@ -27,10 +27,10 @@ function UnInVisible(options){
 	this.settings = {
 		contain: false, // all images will be contained within the view, no zoom.
 		animationSpeed: options.animationSpeed || 400,
-		trackSpeed: options.animationSpeed ? Math.max(Math.min(options.animationSpeed, 1), 0.01) : 0.5
+		trackSpeed: options.trackSpeed ? Math.max(Math.min(options.trackSpeed, 1), 0.01) : 0.5,
+		clickEvent: options.clickEvent || 'click'
 	};
 
-	this.clickEvent = options.clickEvent || 'click';
 
 	this._createView();
 	// this._addTouch();
@@ -60,7 +60,7 @@ _.extend(UnInVisible.prototype, {
 		captionContainer.appendChild(captionText);
 
 		container.appendChild(imageElement);
-		imageElement.appendChild(captionContainer);
+		container.appendChild(captionContainer);
 	},
 
 	_renderView: function(){
@@ -73,7 +73,7 @@ _.extend(UnInVisible.prototype, {
 
 	open: function(img, options, cb){
 		var Uninvisible = this;
-
+console.log('options: ', options);
 		if(Uninvisible.isAnimating || Uninvisible.isOpen) return;
 
 		if(options){
@@ -152,7 +152,7 @@ _.extend(UnInVisible.prototype, {
 		var Uninvisible = this;
 		var container = Uninvisible.container;
 
-		container.addEventListener(Uninvisible.clickEvent, closeImg);
+		container.addEventListener(Uninvisible.settings.clickEvent, closeImg);
 		function closeImg(e){
 			e.stopPropagation();
 			e.preventDefault();
@@ -160,7 +160,7 @@ _.extend(UnInVisible.prototype, {
 		}
 
 		var xListener = function(){
-			container.removeEventListener(Uninvisible.clickEvent, closeImg);
+			container.removeEventListener(Uninvisible.settings.clickEvent, closeImg);
 			Uninvisible.removeListener('close', xListener);
 		};
 
@@ -191,8 +191,9 @@ _.extend(UnInVisible.prototype, {
 
 	setCaption: function(options){
 		var Uninvisible = this;
-		var title = options.captionTitle || Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.captionTitle : null;
-		var text = options.captionText || Uninvisible.sourceElement ?  Uninvisible.sourceElement.dataset.captionText : null;
+		console.log('setCaption', Uninvisible.sourceElement, Uninvisible.sourceElement != null);
+		var title = options.title || (Uninvisible.sourceElement != null ? Uninvisible.sourceElement.dataset.uninvisibleTitle : null);
+		var text = options.text || (Uninvisible.sourceElement != null ?  Uninvisible.sourceElement.dataset.uninvisibleText : null);
 
 		if(title || text) Uninvisible.captionContainer.style.display = 'block';
 		if(title && title.trim().length){

@@ -24,21 +24,22 @@
 		// background: rgba(19, 19, 19, 0.88);
 		// opacity: 0;
 
-		.caption-container{
-			font-family: sans-serif;
-			position: fixed;
-			bottom: 0px;
-			left: 0px;
-			padding: 20px;
-			color: #fff;
-			word-spacing: 0.2px;
-			text-shadow: -1px 0px 1px rgba(0,0,0,0.3);
-			background: rgba(0,0,0,0.6);
-			border-top-right-radius: 5px;
-			display: none;
-		}
+	}
+	.caption-container{
+		font-family: sans-serif;
+		position: fixed;
+		bottom: 0px;
+		left: 0px;
+		padding: 20px;
+		color: #fff;
+		word-spacing: 0.2px;
+		text-shadow: -1px 0px 1px rgba(0,0,0,0.3);
+		background: rgba(0,0,0,0.6);
+		border-top-right-radius: 5px;
+		display: none;
+		z-index: 99999;
 
-		.caption-container .caption-title{
+		.caption-title{
 			margin: 0px;
 			padding: 0px;
 			text-align: left;
@@ -49,7 +50,7 @@
 			display: none;
 		}
 
-		.caption-container .caption-text{
+		.caption-text{
 			margin: 0px;
 			padding: 0px;
 			font-weight: 100;
