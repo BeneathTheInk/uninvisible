@@ -30,6 +30,7 @@ Create a new instance of Uninvisible.
 
 options:
   - clickEvent - *Set a custom event for closing the view. Defaults to `'click'`*
+	- target - *Setup click listener to open elements with a target class. defaults to 'uninvisible. setting to false will prevent the setup of class click listener, allowing you tighter control of image opening'*
 	- animationSpeed - *open/close speed, defaults to 400*
 	- trackSpeed - *Mouse/touch floaty move speed. a number between 0 and 1, defaults to 0.5*
 

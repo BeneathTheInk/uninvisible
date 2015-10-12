@@ -31,8 +31,8 @@ function UnInVisible(options){
 		clickEvent: options.clickEvent || 'click'
 	};
 
-
 	this._createView();
+	if(options.target !== false) this._addClickListeners(options.target || 'uninvisible');
 	// this._addTouch();
 }
 util.inherits(UnInVisible, EventEmitter);
@@ -71,9 +71,25 @@ _.extend(UnInVisible.prototype, {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
+	_addClickListeners: function(target){
+		var Uninvisible = this;
+
+		document.addEventListener('click', _onClick);
+
+		Uninvisible.on('destroy', function(){
+			document.removeEventListener('click', _onClick);
+		});
+
+		function _onClick(e){
+			if(e.target.classList.contains(target) && !e.target.classList.contains('uninvisible-open') && !e.target.dataset.nozoom){
+				Uninvisible.open(e.target);
+			}
+		}
+	},
+
 	open: function(img, options, cb){
 		var Uninvisible = this;
-console.log('options: ', options);
+
 		if(Uninvisible.isAnimating || Uninvisible.isOpen) return;
 
 		if(options){
@@ -191,7 +207,7 @@ console.log('options: ', options);
 
 	setCaption: function(options){
 		var Uninvisible = this;
-		console.log('setCaption', Uninvisible.sourceElement, Uninvisible.sourceElement != null);
+
 		var title = options.title || (Uninvisible.sourceElement != null ? Uninvisible.sourceElement.dataset.uninvisibleTitle : null);
 		var text = options.text || (Uninvisible.sourceElement != null ?  Uninvisible.sourceElement.dataset.uninvisibleText : null);
 
@@ -236,6 +252,11 @@ console.log('options: ', options);
 		},10);
 
 
+		if(Uninvisible.sourceElement){
+			Uninvisible.sourceElement.classList.add('uninvisible-open');
+		}
+
+
 		function _onOpenComplete(){
 			Uninvisible.isAnimating = false;
 			Uninvisible.isOpen = true;
@@ -268,6 +289,10 @@ console.log('options: ', options);
 			Uninvisible.isAnimating = false;
 			Uninvisible.isOpen = false;
 
+			if(Uninvisible.sourceElement){
+				Uninvisible.sourceElement.classList.remove('uninvisible-open');
+			}
+
 			document.body.style.overflow = '';
 			document.body.style.cursor = 'auto';
 
@@ -297,24 +322,36 @@ console.log('options: ', options);
 		var imgW = Uninvisible.image.naturalWidth,
 			imgH = Uninvisible.image.naturalHeight;
 
-		var imgSizeContain = options.contain || Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain;
-// !!!!!!!!
+		var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain);
+
 		if(imgSizeContain){
 			Uninvisible.orientation = 1;
-			if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-				var yMargin = (imgH * (imgW / containerW)) / 2;
+			 if(imgW < containerW && imgH < containerH){ // SMALLER THAN WINDOW
+				 Uninvisible._setImagePositionCSS({
+	 				left: (containerW - imgW) / 2,
+	 				top: (containerH - imgH) / 2,
+	 				width: imgW,
+	 				height: imgH
+	 			});
+			 } else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
+				var heightScaled = imgH * (containerW / imgW);
+				var yMargin = containerH - heightScaled;
+
 				Uninvisible._setImagePositionCSS({
-					top: yMargin,
+					top: yMargin / 2,
 					left: 0,
-					width: null
+					width: containerW,
+					height: heightScaled
 				});
 			} else { //..CONTAINED VERTICAL
-				var yMargin = (imgW * (imgH / containerH)) / 2;
+				var widthScaled = imgW * (containerH / imgH);
+				var xMargin = containerW - widthScaled;
 
 				Uninvisible._setImagePositionCSS({
 					top: 0,
-					left: yMargin,
-					height: null
+					left: xMargin / 2,
+					height: containerH,
+					width: widthScaled
 				});
 			}
 		} else if(imgW < containerW || imgH < containerH){ // SMALL IMAGE..
@@ -613,6 +650,7 @@ console.log('options: ', options);
 	destroy: function(){
 		if(this.isOpen) this.closeViewerImmediately();
 		this._removeView();
+		this.emit('destroy');
 	},
 });
 
