@@ -23,7 +23,7 @@ function UnInVisible(options){
 		// 3 = image width smaller, vertical height larger than window
 		// 4 = fullscreen horizontal
 		// 5 = fullscreen vertical
-		// 6 = fullscreen
+		// 6 = fullscreen free scroll
 	this.settings = {
 		contain: false, // all images will be contained within the view, no zoom.
 		animationSpeed: options.animationSpeed || 400,
@@ -605,8 +605,16 @@ _.extend(UnInVisible.prototype, {
 					x = x + ((xDest - x) * SLIDE_SPEED);
 					if(x < 0 && !isTouching) xDest = (xDest * SLIDE_SPEED);
 					if(x > 100 && !isTouching) xDest = xDest + ((100 - xDest) * SLIDE_SPEED);
+
+					var expandBy;
+					if(x < 50){
+						expandBy = -((50 - x) / 1000) * horizontalMargin * 2;
+					} else {
+						expandBy = ((50 - (100 - x)) / 1000) * horizontalMargin * 2;
+					}
+
 					Uninvisible._setImagePositionCSS({
-						left: (horizontalMargin - (horizontalMargin - (horizontalMargin * (x / 100))))
+						left: expandBy + (horizontalMargin - (horizontalMargin - (horizontalMargin * (x / 100))))
 					});
 					break;
 				// VERTICAL
@@ -615,8 +623,16 @@ _.extend(UnInVisible.prototype, {
 					y = y + ((yDest - y) * SLIDE_SPEED);
 					if(y < 0 && !isTouching) yDest = (yDest * SLIDE_SPEED);
 					if(y > 100 && !isTouching) yDest = yDest + ((100 - yDest) * SLIDE_SPEED);
+
+					var expandBy;
+					if(y < 50){
+						expandBy = -((50 - y) / 1000) * verticalMargin * 2;
+					} else {
+						expandBy = ((50 - (100 - y)) / 1000) * verticalMargin * 2;
+					}
+
 					Uninvisible._setImagePositionCSS({
-						top: (verticalMargin - (verticalMargin - (verticalMargin * (y / 100))))
+						top: expandBy + (verticalMargin - (verticalMargin - (verticalMargin * (y / 100))))
 					});
 					break;
 				// FREE SCROLL
