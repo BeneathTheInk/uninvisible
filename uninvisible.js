@@ -17,7 +17,7 @@ function UnInVisible(options){
 		scaledY: null,
 		xMargin: null,
 		yMargin: null
-	}
+	};
 	this.sourceElement = null;
 
 	this.isAnimating = false;
@@ -572,9 +572,8 @@ _.extend(UnInVisible.prototype, {
 
 		var imgW = Uninvisible.image.naturalWidth;
 		var imgH = Uninvisible.image.naturalHeight;
-		var wRatio,
-				hRatio,
-				scaledWidth = zoomedWidth = Uninvisible.dimensions.scaledX,
+
+		var scaledWidth = zoomedWidth = Uninvisible.dimensions.scaledX,
 				scaledHeight = zoomedHeight = Uninvisible.dimensions.scaledY,
 				horizontalMargin = Uninvisible.dimensions.xMargin,
 				verticalMargin = Uninvisible.dimensions.yMargin;
@@ -595,8 +594,10 @@ _.extend(UnInVisible.prototype, {
 				break;
 		}
 
-		var xDest = yDest = 50,
-			x = y = 50,
+		var xDestPercent = yDestPercent = 50,
+			xDestPixel = containerW / 2,
+			yDestPixel = containerH / 2,
+			xPercent = yPercent = 50,
 			followMouse,
 			onTouchStart, onTouchEnd, handleTouchMove,
 			isTouching = false,
@@ -604,25 +605,25 @@ _.extend(UnInVisible.prototype, {
 			zoomXStart, zoomYstart,
 			zoomXDif = zoomYDif = 0,
 			zoomX = zoomY = 0,
-			diffX, diffY;
+			diffXPercent, diffYPercent;
 		var top, left;
 
 		followMouse = _.throttle(function(e){
 			if(Uninvisible.orientation < 2) return;
 
-			xDest = (e.clientX / containerW) * 100;
-			yDest = (e.clientY / containerH) * 100;
+			xDestPercent = (e.clientX / containerW) * 100;
+			yDestPercent = (e.clientY / containerH) * 100;
 		}, 1000/30);
 
 		onTouchStart = function(e){
 			if(Uninvisible.orientation < 2) return;
 
 			isTouching = true;
-			var startX = 100 - (e.pageX / containerW) * 100;
-			var startY = 100 - (e.pageY / containerH) * 100;
+			var startXPercent = 100 - (e.pageX / containerW) * 100;
+			var startYPercent = 100 - (e.pageY / containerH) * 100;
 
-			diffX = x - startX;
-			diffY = y - startY;
+			diffXPercent = xPercent - startXPercent;
+			diffYPercent = yPercent - startYPercent;
 		};
 
 		onTouchEnd = function(e){
@@ -633,8 +634,8 @@ _.extend(UnInVisible.prototype, {
 
 		handleTouchMove = _.throttle(function(e){
 			if(Uninvisible.orientation < 2 || isZooming === true) return;
-			xDest = ((100 - (e.pageX / containerW) * 100) + diffX);
-			yDest = ((100 - (e.pageY / containerH) * 100) + diffY);
+			xDestPercent = ((100 - (e.pageX / containerW) * 100) + diffXPercent);
+			yDestPercent = ((100 - (e.pageY / containerH) * 100) + diffYPercent);
 		}, 1000/30);
 
 
@@ -657,7 +658,7 @@ _.extend(UnInVisible.prototype, {
 			zoomedHeight = scaledHeight + zoomY;
 			zoomedWidth = scaledWidth * (zoomedHeight / scaledHeight);
 
-			xDest = (e.center.x / zoomedWidth) * 100;
+			xDestPercent = (e.center.x / zoomedWidth) * 100;
 
 			verticalMargin = zoomedHeight > containerH ? zoomedHeight - containerH : containerH - zoomedHeight;
 			horizontalMargin = zoomedWidth > containerW ? zoomedWidth - containerW : containerW - zoomedWidth;
@@ -665,14 +666,15 @@ _.extend(UnInVisible.prototype, {
 
 		this.touch.on('pinchmove', onPinchMove);
 		function onPinchMove(e){
+
 			var difs = getZoomDif(e);
-			zoomX = zoomXDif + difs.x - zoomXStart;
-			zoomY = zoomYDif + difs.y - zoomYStart;
+			zoomX = (zoomXDif + difs.x - zoomXStart) * 2;
+			zoomY = (zoomYDif + difs.y - zoomYStart) * 2;
 
 			zoomedHeight = scaledHeight + zoomY;
 			zoomedWidth = scaledWidth * (zoomedHeight / scaledHeight);
 
-			xDest = (e.center.x / zoomedWidth) * 100;
+			xDestPercent = (e.center.x / zoomedWidth) * 100;
 
 			verticalMargin = zoomedHeight > containerH ? zoomedHeight - containerH : containerH - zoomedHeight;
 			horizontalMargin = zoomedWidth > containerW ? zoomedWidth - containerW : containerW - zoomedWidth;
@@ -710,74 +712,73 @@ _.extend(UnInVisible.prototype, {
 				// HORIZONTAL
 				case 2:
 				case 4:
-					x = x + ((xDest - x) * SLIDE_SPEED);
-					if(x < 0 && !isTouching) xDest = (xDest * SLIDE_SPEED);
-					if(x > 100 && !isTouching) xDest = xDest + ((100 - xDest) * SLIDE_SPEED);
+					xPercent = xPercent + ((xDestPercent - xPercent) * SLIDE_SPEED);
+					if(xPercent < 0 && !isTouching) xDestPercent = (xDestPercent * SLIDE_SPEED);
+					if(xPercent > 100 && !isTouching) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
 
 					var expandBy;
-					if(x < 50){
-						expandBy = -((50 - x) / 1000) * horizontalMargin * 2;
+					if(xPercent < 50){
+						expandBy = -((50 - xPercent) / 1000) * horizontalMargin * 2;
 					} else {
-						expandBy = ((50 - (100 - x)) / 1000) * horizontalMargin * 2;
+						expandBy = ((50 - (100 - xPercent)) / 1000) * horizontalMargin * 2;
 					}
 
 					Uninvisible._setImagePositionCSS({
-						left: expandBy + (horizontalMargin - (horizontalMargin - (horizontalMargin * (x / 100))))
+						left: expandBy + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100))))
 					});
 					break;
 				// VERTICAL
 				case 3:
 				case 5:
-					y = y + ((yDest - y) * SLIDE_SPEED);
-					if(y < 0 && !isTouching) yDest = (yDest * SLIDE_SPEED);
-					if(y > 100 && !isTouching) yDest = yDest + ((100 - yDest) * SLIDE_SPEED);
+					yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
+					if(yPercent < 0 && !isTouching) yDestPercent = (yDestPercent * SLIDE_SPEED);
+					if(yPercent > 100 && !isTouching) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
 
 					var expandBy;
-					if(y < 50){
-						expandBy = -((50 - y) / 1000) * verticalMargin * 2;
+					if(yPercent < 50){
+						expandBy = -((50 - yPercent) / 1000) * verticalMargin * 2;
 					} else {
-						expandBy = ((50 - (100 - y)) / 1000) * verticalMargin * 2;
+						expandBy = ((50 - (100 - yPercent)) / 1000) * verticalMargin * 2;
 					}
 
 					Uninvisible._setImagePositionCSS({
-						top: expandBy + (verticalMargin - (verticalMargin - (verticalMargin * (y / 100))))
+						top: expandBy + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100))))
 					});
 					break;
 				// FREE SCROLL
 				case 6:
-					x = x + ((xDest - x) * SLIDE_SPEED);
-					if(x < 0 && !isTouching) xDest = (xDest * SLIDE_SPEED);
-					if(x > 100 && !isTouching) xDest = xDest + ((100 - xDest) * SLIDE_SPEED);
+					xPercent = xPercent + ((xDestPercent - xPercent) * SLIDE_SPEED);
+					if(xPercent < 0 && !isTouching) xDestPercent = (xDestPercent * SLIDE_SPEED);
+					if(xPercent > 100 && !isTouching) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
 
 					var expandByX;
-					if(x < 50){
-						expandByX = -((50 - x) / 1000) * horizontalMargin * 2;
+					if(xPercent < 50){
+						expandByX = -((50 - xPercent) / 1000) * horizontalMargin * 2;
 					} else {
-						expandByX = ((50 - (100 - x)) / 1000) * horizontalMargin * 2;
+						expandByX = ((50 - (100 - xPercent)) / 1000) * horizontalMargin * 2;
 					}
 
-					y = y + ((yDest - y) * SLIDE_SPEED);
-					if(y < 0 && !isTouching) yDest = (yDest * SLIDE_SPEED);
-					if(y > 100 && !isTouching) yDest = yDest + ((100 - yDest) * SLIDE_SPEED);
+					yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
+					if(yPercent < 0 && !isTouching) yDestPercent = (yDestPercent * SLIDE_SPEED);
+					if(yPercent > 100 && !isTouching) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
 
 					var expandByY;
-					if(y < 50){
-						expandByY = -((50 - y) / 1000) * verticalMargin * 2;
+					if(yPercent < 50){
+						expandByY = -((50 - yPercent) / 1000) * verticalMargin * 2;
 					} else {
-						expandByY = ((50 - (100 - y)) / 1000) * verticalMargin * 2;
+						expandByY = ((50 - (100 - yPercent)) / 1000) * verticalMargin * 2;
 					}
 
-
 					if(zoomedWidth > containerW){
-						left = -(expandByX + (horizontalMargin - (horizontalMargin - (horizontalMargin * (x / 100)) )) );
+						left = -(expandByX + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100)) )) );
 					} else {
-						left = (expandByX + ((horizontalMargin - (horizontalMargin * (x / 100)) )) );
+						left = (expandByX + ((horizontalMargin - (horizontalMargin * (xPercent / 100)) )) );
 					}
 
 					if(zoomedHeight > containerH){
-						top = -(expandByY + (verticalMargin - (verticalMargin - (verticalMargin * (y / 100)) )) );
+						top = -(expandByY + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100)) )) );
 					} else {
-						top = (expandByY + ((verticalMargin - (verticalMargin * (y / 100)) )) );
+						top = (expandByY + ((verticalMargin - (verticalMargin * (yPercent / 100)) )) );
 					}
 
 					Uninvisible._setImagePositionCSS({
