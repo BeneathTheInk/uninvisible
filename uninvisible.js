@@ -4,6 +4,75 @@ var util = require('util');
 var raf = require('raf');
 // var Touch = require('hammerjs');
 
+
+var mapPin={};
+pins={}
+// Map1
+pins['fakemarket']={'x':982,'y':1477};
+pins['grandgateway']={'x':952,'y':1443};
+pins['huashanhospital']={'x':845,'y':977};
+pins['jiaotonguniversity']={'x':908,'y':1271};
+pins['metrocity']={'x':1021,'y':1512};
+pins['stadium']={'x':1060,'y':1810};
+pins['xujiahui']={'x':936,'y':1459};
+// Map2
+pins['2sdepot']={'x':1808,'y':385};
+pins['2ssalvagedepot']={'x':1808,'y':385};
+pins['army2sdepot']={'x':1808,'y':385};
+pins['armydisassemblyfacility']={'x':1705,'y':645};
+pins['centralacademyofshanghai']={'x':1836,'y':552};
+pins['changshulustation']={'x':1278,'y':963};
+pins['datongmill']={'x':1602,'y':678};
+pins['elevatedringroadbwstadiumandlupub']={'x':1919,'y':1371};
+pins['exposite']={'x':1944,'y':1772};
+pins['frenchconcession']={'x':1441,'y':1007};
+pins['fuxinglu']={'x':1119,'y':1025};
+pins['fuxingpark']={'x':1697,'y':817};
+pins['hanzhonglu']={'x':1478,'y':178};
+pins['hengshanlustation']={'x':1156,'y':1175};
+pins['huangpilustation']={'x':1787,'y':686};
+pins['interfacedecommissioningandreclamation']={'x':1712,'y':445};
+pins['intersectionoffuxingluandbaoqinglu']={'x':1265,'y':1014};
+pins['lupubridge']={'x':1991,'y':1610};
+pins['metrodepot']={'x':1811,'y':385};
+pins['ministryofaccess']={'x':1803,'y':486};
+pins['ministryofaccessheadquarters']={'x':1803,'y':486};
+pins['nailhousefacility']={'x':1162,'y':929};
+pins['offlinereeducation']={'x':1817,'y':517};
+pins['people39ssquare']={'x':1766,'y':444};
+pins['peoplessquare']={'x':1766,'y':444};
+pins['peoplessquarestation']={'x':1837,'y':429};
+pins['portmancolony']={'x':1283,'y':587};
+pins['shanghaiacademy']={'x':1836,'y':548};
+pins['shanghaicentralacademy']={'x':1836,'y':548};
+pins['shelter']={'x':1118,'y':1005};
+pins['southnorthelevatedhighway']={'x':1595,'y':285};
+pins['storagedepot']={'x':1811,'y':385};
+pins['summitmodulecolony']={'x':1145,'y':903};
+pins['suzhoucreek']={'x':1404,'y':275};
+pins['thecenter']={'x':1176,'y':898};
+pins['wu39slanehouse']={'x':1592,'y':166};
+pins['xintiandi']={'x':1851,'y':780};
+pins['muse']={'x':1851,'y':780};
+pins['baoqinglu']={'x':1259,'y':1016};
+pins['xinzhalu']={'x':1589,'y':271};
+// Map3
+pins['xizangsouthstation']={'x':2169,'y':1266};
+pins['ferrypier']={'x':2481,'y':674};
+pins['huangpuriver']={'x':2301,'y':400};
+pins['institute']={'x':2393,'y':322};
+pins['lujiazui']={'x':2681,'y':328};
+pins['lujiazuicity']={'x':2681,'y':328};
+pins['lujiazuicitypiersecurityoffice']={'x':2482,'y':506};
+pins['moritower']={'x':2581,'y':384};
+pins['nanpubridge']={'x':2541,'y':1161};
+pins['thebund']={'x':2209,'y':218};
+pins['zhongguotower']={'x':2544,'y':412};
+// Map4
+pins['centurypark']={'x':3789,'y':851};
+pins['partymuseum']={'x':3411,'y':781};
+pins['songlina39sapartment']={'x':3840,'y':841};
+
 function UnInVisible(options){
 	this.options = options || {};
 
@@ -45,6 +114,9 @@ _.extend(UnInVisible.prototype, {
 		var container = this.container = document.createElement('div');
 		container.classList.add('uninvisible-container');
 
+    	var imageDiv = this.imageDiv = document.createElement('div');	
+    	imageDiv.classList.add('uninvisible-image');
+
 		var imageElement = this.imageElement = document.createElement('img');
 		imageElement.classList.add('uninvisible-image');
 
@@ -59,7 +131,8 @@ _.extend(UnInVisible.prototype, {
 		captionText.classList.add('caption-text');
 		captionContainer.appendChild(captionText);
 
-		container.appendChild(imageElement);
+		container.appendChild(imageDiv);
+		// container.appendChild(imageElement);
 		container.appendChild(captionContainer);
 	},
 
@@ -118,6 +191,7 @@ _.extend(UnInVisible.prototype, {
 	_setupImage: function(img, options, cb){
 		var Uninvisible = this;
 		var dataUrl;
+		mapPin.status=false;
 
 		Uninvisible.sourceElement = img;
 
@@ -127,6 +201,8 @@ _.extend(UnInVisible.prototype, {
 
 			var newImg = Uninvisible.image = new Image();
 			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = img;
+
+			Uninvisible.imageDiv.style.backgroundImage="url("+newImg.src+")";
 
 			newImg.addEventListener('load', function(){
 				cb();
@@ -142,6 +218,16 @@ _.extend(UnInVisible.prototype, {
 			var newImg = Uninvisible.image = new Image();
 			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = dataUrl;
 
+			if(img.dataset.uninvisiblePin!==undefined){
+				mapPin.status=true;
+				Uninvisible.imageDiv.style.backgroundImage="url('pin.PNG'),url('"+dataUrl+"')";
+				mapPin.x=pins[img.dataset.uninvisiblePin].x;
+				mapPin.y=pins[img.dataset.uninvisiblePin].y;
+				Uninvisible.imageDiv.style.backgroundPosition=mapPin.x+"px "+mapPin.y+"px,left top";
+				Uninvisible.imageDiv.style.backgroundSize="5%, 100%";
+				Uninvisible.imageElement=Uninvisible.imageDiv;
+			}
+
 			newImg.addEventListener('load', function(){
 				cb();
 			});
@@ -151,11 +237,12 @@ _.extend(UnInVisible.prototype, {
 			if(options.url || img.dataset.uninvisibleUrl){
 				var newImg = Uninvisible.image = new Image();
 				newImg.src = Uninvisible.imageElement.src = Uninvisible.url = options.url || img.dataset.uninvisibleUrl;
-
+				Uninvisible.imageDiv.style.backgroundImage="url("+newImg.src+")";
 				newImg.addEventListener('load', function(){
 					cb();
 				});
 			} else {
+				Uninvisible.imageDiv.style.backgroundImage="url("+img.src+")";
 				Uninvisible.imageElement.src = img.src;
 				cb();
 			}
@@ -399,12 +486,19 @@ _.extend(UnInVisible.prototype, {
 	},
 
 	_setImagePositionCSS: function(p){
+		var Uninvisible = this;
 		var img = this.imageElement;
 
 		if(p.top || p.top === 0) img.style.top = p.top + 'px';
 		if(p.left || p.left === 0) img.style.left = p.left + 'px';
 		if(p.width) img.style.width = p.width + 'px';
 		if(p.height) img.style.height = p.height + 'px';
+
+		if(mapPin.status){
+			mapPin.sX=(mapPin.x-100)*(p.width/4300);
+		    mapPin.sY=(mapPin.y-70)*(p.height/2950);
+		    Uninvisible.imageDiv.style.backgroundPosition=mapPin.sX+"px "+mapPin.sY+"px,left top";
+		}
 	},
 
 	_setToImgLocation: function(){
