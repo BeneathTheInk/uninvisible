@@ -114,11 +114,11 @@ _.extend(UnInVisible.prototype, {
 		var container = this.container = document.createElement('div');
 		container.classList.add('uninvisible-container');
 
-    	var imageDiv = this.imageDiv = document.createElement('div');	
+    	var imageDiv = this.imageDiv = this.imageElement = document.createElement('div');	
     	imageDiv.classList.add('uninvisible-image');
 
-		var imageElement = this.imageElement = document.createElement('img');
-		imageElement.classList.add('uninvisible-image');
+		// var imageElement = this.imageElement = document.createElement('img');
+		// imageElement.classList.add('uninvisible-image');
 
 		var captionContainer = this.captionContainer = document.createElement( 'figcaption' );
 		captionContainer.classList.add('caption-container');
@@ -192,6 +192,7 @@ _.extend(UnInVisible.prototype, {
 		var Uninvisible = this;
 		var dataUrl;
 		mapPin.status=false;
+		Uninvisible.imageDiv.style.backgroundSize="100%";
 
 		Uninvisible.sourceElement = img;
 
@@ -225,9 +226,7 @@ _.extend(UnInVisible.prototype, {
 				mapPin.y=pins[img.dataset.uninvisiblePin].y;
 				Uninvisible.imageDiv.style.backgroundPosition=mapPin.x+"px "+mapPin.y+"px,left top";
 				Uninvisible.imageDiv.style.backgroundSize="5%, 100%";
-				Uninvisible.imageElement=Uninvisible.imageDiv;
 			}
-
 			newImg.addEventListener('load', function(){
 				cb();
 			});
