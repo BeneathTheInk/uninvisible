@@ -13,10 +13,11 @@ function UnInVisible(options){
 	this.url = null;
 	this.image = null;
 	this.dimensions = {
-		scaledX: null,
-		scaledY: null,
-		xMargin: null,
-		yMargin: null
+		// scaledX: null,
+		// scaledY: null,
+		// xMargin: null,
+		// yMargin: null,
+		scale: 1
 	};
 	this.sourceElement = null;
 
@@ -244,6 +245,10 @@ _.extend(UnInVisible.prototype, {
 		UnInVisible.isAnimating = true;
 		Uninvisible.emit('open');
 
+		Uninvisible._transformImage({
+			origin: '50% 50%'
+		});
+
 		Uninvisible._setToImgLocation();
 		Uninvisible.container.style.display = 'block';
 
@@ -254,7 +259,7 @@ _.extend(UnInVisible.prototype, {
 
 		setTimeout(function(){
 			Uninvisible._expand(options);
-			if(Uninvisible.orientation > 1) Uninvisible._trackMovement();
+			Uninvisible._trackMovement();
 		},10);
 
 
@@ -328,71 +333,51 @@ _.extend(UnInVisible.prototype, {
 		var imgW = Uninvisible.image.naturalWidth,
 			imgH = Uninvisible.image.naturalHeight;
 
+		var scale;
+
+		// Uninvisible.dimensions = {
+		// 	scaledX: imgW,
+		// 	scaledY: imgH,
+		// 	xMargin: containerW - imgW,
+		// 	yMargin: containerH - imgH
+		// }
+
+		Uninvisible._setImagePositionCSS({
+			left: (containerW - imgW) / 2,
+			top: (containerH - imgH) / 2,
+			width: imgW,
+			height: imgH
+		});
+
+		Uninvisible._transformImage({
+			scale: 1
+		});
+
 		var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain);
 
 		if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.settings.freeZoom){
-			Uninvisible.dimensions = {
-				scaledX: imgW,
-				scaledY: imgH,
-				xMargin: containerW - imgW,
-				yMargin: containerH - imgH
-			}
-
-			Uninvisible._setImagePositionCSS({
-				left: (containerW - imgW) / 2,
-				top: (containerH - imgH) / 2,
-				width: imgW,
-				height: imgH
-			});
+			console.log('freeZoom');
+			Uninvisible.orientation = 6;
 		} else if(imgSizeContain){
 			Uninvisible.orientation = 1;
 			 if(imgW < containerW && imgH < containerH){ // SMALLER THAN WINDOW
-				 Uninvisible.dimensions = {
-					 scaledX: imgW,
-					 scaledY: imgH,
-					 xMargin: containerW - imgW,
-					 yMargin: containerH - imgH
-				 }
+				 console.log('contain, smaller than window');
 
-				 Uninvisible._setImagePositionCSS({
-	 				left: (containerW - imgW) / 2,
-	 				top: (containerH - imgH) / 2,
-	 				width: imgW,
-	 				height: imgH
-	 			});
 			 } else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-				var heightScaled = imgH * (containerW / imgW);
-				var yMargin = containerH - heightScaled;
+				 console.log('contained, horizontal');
 
-				Uninvisible.dimensions = {
-					scaledX: containerW,
-					scaledY: heightScaled,
-					xMargin: 0,
-					yMargin: yMargin
-				}
+				 scale = Uninvisible.dimensions.scale = (containerW / imgW);
 
-				Uninvisible._setImagePositionCSS({
-					top: yMargin / 2,
-					left: 0,
-					width: containerW,
-					height: heightScaled
-				});
+				 Uninvisible._transformImage({
+					 scale: scale
+				 });
 			} else { //..CONTAINED VERTICAL
-				var widthScaled = imgW * (containerH / imgH);
-				var xMargin = containerW - widthScaled;
+				console.log('contained, vertical');
 
-				Uninvisible.dimensions = {
-					scaledX: widthScaled,
-					scaledY: containerH,
-					xMargin: xMargin,
-					yMargin: 0
-				}
+				scale = Uninvisible.dimensions.scale = containerH / imgH;
 
-				Uninvisible._setImagePositionCSS({
-					top: 0,
-					left: xMargin / 2,
-					height: containerH,
-					width: widthScaled
+				Uninvisible._transformImage({
+					scale: scale
 				});
 			}
 		} else if(imgW < containerW || imgH < containerH){ // SMALL IMAGE..
@@ -401,57 +386,25 @@ _.extend(UnInVisible.prototype, {
 			} else {
 				Uninvisible.orientation = 0; // ..SMALLER THAN WINDOW
 			}
-
-			Uninvisible.dimensions = {
-				scaledX: imgW,
-				scaledY: imgH,
-				xMargin: containerW - imgW,
-				yMargin: containerH - imgH
-			}
-
-			Uninvisible._setImagePositionCSS({
-				left: (containerW - imgW) / 2,
-				top: (containerH - imgH) / 2,
-				width: imgW,
-				height: imgH
-			});
-
+			console.log('small image: ', Uninvisible.orientation);
 	} else { // LARGE IMAGE..
 			if(imgW / imgH > containerW / containerH){
+				console.log('large, horizontal');
 				Uninvisible.orientation = 4; //..HORIZONTAL
-				var widthScaled = imgW * (containerH / imgH);
-				var horizontalMargin = widthScaled - containerW;
 
-				Uninvisible.dimensions = {
-					scaledX: widthScaled,
-					scaledY: containerH,
-					xMargin: horizontalMargin,
-					yMargin: 0
-				}
+				scale = Uninvisible.dimensions.scale = containerH / imgH;
 
-				Uninvisible._setImagePositionCSS({
-					top: 0,
-					left: -horizontalMargin / 2,
-					height: containerH,
-					width: widthScaled
+				Uninvisible._transformImage({
+					scale: scale
 				});
 			} else {
+				console.log('large, vertical');
 				Uninvisible.orientation = 5; //..VERTICAL
-				var heightScaled = (imgH * (containerW / imgW));
-				var verticalMargin = heightScaled - containerH;
 
-				Uninvisible.dimensions = {
-					scaledX: containerW,
-					scaledY: heightScaled,
-					xMargin: 0,
-					yMargin: verticalMargin
-				}
+				scale = Uninvisible.dimensions.scale = containerW / imgW;
 
-				Uninvisible._setImagePositionCSS({
-					top: -verticalMargin / 2,
-					left: 0,
-					width: containerW,
-					height: heightScaled
+				Uninvisible._transformImage({
+					scale: scale
 				});
 			}
 		}
@@ -459,9 +412,16 @@ _.extend(UnInVisible.prototype, {
 		Uninvisible.container.style.opacity = 1;
 	},
 
+	_transformImage: function(p){
+		var img = this.imageElement;
+		console.log('transform: ', p);
+		if(p.scale) img.style.transform = 'scale(' + p.scale + ')';
+		if(p.origin) img.style.transformOrigin = p.origin;
+	},
+
 	_setImagePositionCSS: function(p){
 		var img = this.imageElement;
-
+		console.log('css: ', p);
 		if(p.top || p.top === 0) img.style.top = p.top + 'px';
 		if(p.left || p.left === 0) img.style.left = p.left + 'px';
 		if(p.width) img.style.width = p.width + 'px';
@@ -565,48 +525,42 @@ _.extend(UnInVisible.prototype, {
 		var imageElement = Uninvisible.imageElement;
 
 		var orientation = Uninvisible.orientation;
-		if(orientation < 2) return;
 
 		var containerW = window.innerWidth,
-			containerH = window.innerHeight;
+				containerH = window.innerHeight;
 
 		var imgW = Uninvisible.image.naturalWidth;
 		var imgH = Uninvisible.image.naturalHeight;
 
-		var scaledWidth = zoomedWidth = Uninvisible.dimensions.scaledX,
-				scaledHeight = zoomedHeight = Uninvisible.dimensions.scaledY,
-				horizontalMargin = Uninvisible.dimensions.xMargin,
-				verticalMargin = Uninvisible.dimensions.yMargin;
+		var scale = Uninvisible.dimensions.scale;
+		var minScale = imgW / imgH > containerW / containerH ? (containerW / imgW) * 0.8 : (containerH / imgH) * 0.8;
 
-		switch(orientation){
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-				break;
-			case 4:
-				horizontalMargin = -horizontalMargin;
-				break;
-			case 5:
-				verticalMargin = -verticalMargin;
-				break;
-			case 6:
-				break;
-		}
+		var horizontalMargin = containerW - imgW,
+				verticalMargin = containerH - imgH;
+		var scaledMarginX,
+				scaledMarginY;
 
-		var xDestPercent = yDestPercent = 50,
-			xDestPixel = containerW / 2,
-			yDestPixel = containerH / 2,
-			xPercent = yPercent = 50,
-			followMouse,
-			onTouchStart, onTouchEnd, handleTouchMove,
-			isTouching = false,
-			isZooming = false,
-			zoomXStart, zoomYstart,
-			zoomXDif = zoomYDif = 0,
-			zoomX = zoomY = 0,
-			diffXPercent, diffYPercent;
-		var top, left;
+				var xDestPercent = yDestPercent = 50,
+					xPercent = yPercent = 50,
+					x = xDest = containerW / 2,
+					y = yDest = containerH / 2,
+					startX, startY,
+					followMouse;
+				var onTouchStart, onTouchEnd, handleTouchMove,
+					isTouching = false,
+					isZooming = false,
+					zoomXStart, zoomYstart,
+					zoomXDif = zoomYDif = 0,
+					zoomX = zoomY = 0,
+					newScale;
+				var top = verticalMargin / 2,
+						left = horizontalMargin / 2,
+						origXMargin = (containerW - imgW),
+						origYMargin = (containerH - imgH),
+						startLeft, startTop,
+						leftDest, topDest;
+
+
 
 		followMouse = _.throttle(function(e){
 			if(Uninvisible.orientation < 2) return;
@@ -619,12 +573,20 @@ _.extend(UnInVisible.prototype, {
 			if(Uninvisible.orientation < 2) return;
 
 			isTouching = true;
-			var startXPercent = 100 - (e.pageX / containerW) * 100;
-			var startYPercent = 100 - (e.pageY / containerH) * 100;
 
-			diffXPercent = xPercent - startXPercent;
-			diffYPercent = yPercent - startYPercent;
+			startX = e.pageX;
+			startY = e.pageY;
+
+			startLeft = left;
+			startTop = top;
 		};
+
+		handleTouchMove = _.throttle(function(e){
+			if(Uninvisible.orientation < 2 || isZooming === true) return;
+
+			left = (e.pageX - startX) + startLeft;
+			top = (e.pageY - startY) + startTop;
+		}, 1000/30);
 
 		onTouchEnd = function(e){
 			if(Uninvisible.orientation < 2) return;
@@ -632,18 +594,12 @@ _.extend(UnInVisible.prototype, {
 			isTouching = false;
 		};
 
-		handleTouchMove = _.throttle(function(e){
-			if(Uninvisible.orientation < 2 || isZooming === true) return;
-			xDestPercent = ((100 - (e.pageX / containerW) * 100) + diffXPercent);
-			yDestPercent = ((100 - (e.pageY / containerH) * 100) + diffYPercent);
-		}, 1000/30);
-
 
 		// this.touch.on('rotate', function(e){
 		// 	console.log('rotate!!', e);
 		// });
 
-		this.touch.on('pinchstart', onPinchStart);
+		var startCenterX, startCenterY;
 		function onPinchStart(e){
 			Uninvisible.orientation = 6;
 			isZooming = true;
@@ -652,48 +608,78 @@ _.extend(UnInVisible.prototype, {
 			zoomXStart = difs.x;
 			zoomYStart = difs.y
 
-			zoomX = zoomXDif + difs.x - zoomXStart;
-			zoomY = zoomYDif + difs.y - zoomYStart;
+			startCenterX = e.center.x;
+			startCenterY = e.center.y;
 
-			zoomedHeight = scaledHeight + zoomY;
-			zoomedWidth = scaledWidth * (zoomedHeight / scaledHeight);
-
-			xDestPercent = (e.center.x / zoomedWidth) * 100;
-
-			verticalMargin = zoomedHeight > containerH ? zoomedHeight - containerH : containerH - zoomedHeight;
-			horizontalMargin = zoomedWidth > containerW ? zoomedWidth - containerW : containerW - zoomedWidth;
+			startLeft = left;
+			startTop = top;
 		}
 
-		this.touch.on('pinchmove', onPinchMove);
 		function onPinchMove(e){
+			setScale(e);
 
-			var difs = getZoomDif(e);
-			zoomX = (zoomXDif + difs.x - zoomXStart) * 2;
-			zoomY = (zoomYDif + difs.y - zoomYStart) * 2;
+			var x = e.center.x;
+			var y = e.center.y;
 
-			zoomedHeight = scaledHeight + zoomY;
-			zoomedWidth = scaledWidth * (zoomedHeight / scaledHeight);
+			var w = imgW * scale;
+			var h = imgH * scale;
 
-			xDestPercent = (e.center.x / zoomedWidth) * 100;
+			var xMar = containerW - w;
+			var yMar = containerH - h;
 
-			verticalMargin = zoomedHeight > containerH ? zoomedHeight - containerH : containerH - zoomedHeight;
-			horizontalMargin = zoomedWidth > containerW ? zoomedWidth - containerW : containerW - zoomedWidth;
+			var imgCenterX = w / 2;
+			var imgCenterY = h / 2;
+
+			var windowCenterX = containerW / 2;
+			var windowCenterY = containerH / 2;
+
+			var viewLeft = imgCenterX - windowCenterX;
+			var viewTop = imgCenterY - windowCenterY;
+
+			var xLoc = viewLeft + x;
+			var yLoc = viewTop + y;
+
+			var xRatio = xLoc / w;
+			var yRatio = yLoc / h;
+
+			var trueLocX = imgW * xRatio;
+			var trueLocY = imgH * yRatio;
+
+			Uninvisible._transformImage({
+				origin: trueLocX + 'px ' + trueLocY + 'px'
+			});
+
+			left = startLeft - viewLeft;
+
+			Uninvisible._setImagePositionCSS({
+				left: left
+			});
 		}
 
-		this.touch.on('pinchend', onPinchEnd);
 		function onPinchEnd(e){
+			scale = setScale(e);
 			setTimeout(function(){ isZooming = false; }, 200);
+		}
 
-			zoomXDif = zoomX;
-			zoomYDif = zoomY;
+		function setScale(e){
+			var difs = getZoomDif(e);
+			zoomXDif = (difs.x - zoomXStart);
+			zoomYDif = (difs.y - zoomYStart);
 
-			zoomXStart = zoomYstart = null;
+			var z = zoomXDif > zoomYDif ? zoomXDif : zoomYDif;
+
+			newScale = Math.max(scale + (z * (scale / 100)), minScale);
+
+			Uninvisible._transformImage({
+				scale: newScale
+			});
+
+			return newScale;
 		}
 
 		function getZoomDif(e){
 			var p1 = e.pointers[0],
 					p2 = e.pointers[1];
-
 
 			var difs = {
 				x: p1.screenX > p2.screenX ? e.center.x - p2.screenX : e.center.x - p1.screenX,
@@ -703,8 +689,13 @@ _.extend(UnInVisible.prototype, {
 			return difs;
 		}
 
+
+
+
+
 		var SLIDE_SPEED = Uninvisible.settings.trackSpeed;
-		function positionImage(){
+
+		function positionImageDesktop(){
 			switch(Uninvisible.orientation){
 				case 0:
 				case 1:
@@ -751,68 +742,113 @@ _.extend(UnInVisible.prototype, {
 					if(xPercent < 0 && !isTouching) xDestPercent = (xDestPercent * SLIDE_SPEED);
 					if(xPercent > 100 && !isTouching) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
 
-					var expandByX;
+					var expandBy;
 					if(xPercent < 50){
-						expandByX = -((50 - xPercent) / 1000) * horizontalMargin * 2;
+						expandBy = -((50 - xPercent) / 1000) * horizontalMargin * 2;
 					} else {
-						expandByX = ((50 - (100 - xPercent)) / 1000) * horizontalMargin * 2;
+						expandBy = ((50 - (100 - xPercent)) / 1000) * horizontalMargin * 2;
 					}
+
+					Uninvisible._setImagePositionCSS({
+						left: expandBy + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100))))
+					});
 
 					yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
 					if(yPercent < 0 && !isTouching) yDestPercent = (yDestPercent * SLIDE_SPEED);
 					if(yPercent > 100 && !isTouching) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
 
-					var expandByY;
+					var expandBy;
 					if(yPercent < 50){
-						expandByY = -((50 - yPercent) / 1000) * verticalMargin * 2;
+						expandBy = -((50 - yPercent) / 1000) * verticalMargin * 2;
 					} else {
-						expandByY = ((50 - (100 - yPercent)) / 1000) * verticalMargin * 2;
-					}
-
-					if(zoomedWidth > containerW){
-						left = -(expandByX + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100)) )) );
-					} else {
-						left = (expandByX + ((horizontalMargin - (horizontalMargin * (xPercent / 100)) )) );
-					}
-
-					if(zoomedHeight > containerH){
-						top = -(expandByY + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100)) )) );
-					} else {
-						top = (expandByY + ((verticalMargin - (verticalMargin * (yPercent / 100)) )) );
+						expandBy = ((50 - (100 - yPercent)) / 1000) * verticalMargin * 2;
 					}
 
 					Uninvisible._setImagePositionCSS({
-						top: top,
-						left: left,
-						width: zoomedWidth,
-						height: zoomedHeight
+						top: expandBy + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100))))
 					});
-
 					break;
 			}
 		}
 
-		imageElement.addEventListener("touchstart", onTouchStart);
-		imageElement.addEventListener("touchend", onTouchEnd);
-		imageElement.addEventListener("touchmove", handleTouchMove);
-		addEventListener('mousemove', followMouse);
+		function positionImageDevice(){
+			switch(Uninvisible.orientation){
+				case 0:
+				case 1:
+					break;
+				// HORIZONTAL
+				case 2:
+				case 4:
+
+					imageElement.style.left = left + 'px';
+					break;
+				// VERTICAL
+				case 3:
+				case 5:
+					imageElement.style.top = top + 'px';
+					break;
+				// FREE SCROLL
+				case 6:
+					scaledMarginX = containerW - (imgW * scale);
+					scaledMarginY = containerH - (imgH * scale);
+
+					// left = Math.min(Math.max(left, scaledMarginX - (imgW - (imgW * scale))), scaledMarginX + (imgW - (imgW * scale)));
+					// left = Math.max(left, (origXMargin - (origXMargin - (scaledMarginX))));
+
+					imageElement.style.left = left + 'px';
+					imageElement.style.top = top + 'px';
+					break;
+			}
+		}
+
+
+
 
 		var looper;
-		function loop(){
-			looper = raf(loop);
-			positionImage();
+
+		function loopDesktop(){
+			looper = raf(loopDesktop);
+			positionImageDesktop();
 		}
-		loop();
+
+		function loopDevice(){
+			looper = raf(loopDevice);
+			positionImageDevice();
+		}
+
+		if(Uninvisible.isDevice){
+			loopDevice();
+		} else {
+			loopDesktop();
+		}
+
+
+		if(Uninvisible.isDevice){ // DEVICE
+			this.touch.on('pinchstart', onPinchStart);
+			this.touch.on('pinchmove', onPinchMove);
+			this.touch.on('pinchend', onPinchEnd);
+			imageElement.addEventListener("touchstart", onTouchStart);
+			imageElement.addEventListener("touchend", onTouchEnd);
+			imageElement.addEventListener("touchmove", handleTouchMove);
+
+		} else { // DESKTOP
+			addEventListener('mousemove', followMouse);
+		}
+
+
 
 		var xListener = function(){
 			raf.cancel(looper);
-			removeEventListener('mousemove', followMouse);
-			imageElement.removeEventListener("touchmove", handleTouchMove);
 			Uninvisible.removeListener('close', xListener);
 
-			Uninvisible.touch.off('pinchstart', onPinchStart);
-			Uninvisible.touch.off('pinchmove', onPinchMove);
-			Uninvisible.touch.off('pinchend', onPinchEnd);
+			if(Uninvisible.isDevice){
+				imageElement.removeEventListener("touchmove", handleTouchMove);
+				Uninvisible.touch.off('pinchstart', onPinchStart);
+				Uninvisible.touch.off('pinchmove', onPinchMove);
+				Uninvisible.touch.off('pinchend', onPinchEnd);
+			} else {
+				removeEventListener('mousemove', followMouse);
+			}
 		};
 
 		Uninvisible.on('close', xListener);
