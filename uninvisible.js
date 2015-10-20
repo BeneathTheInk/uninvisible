@@ -6,7 +6,8 @@ var Touch = require('hammerjs');
 var Paper = require("./vendor/paper");
 
 function UnInVisible(options){
-	this.options = options || {};
+	options = options || {};
+	this.options = options;
 
 	this.isDevice = !!('ontouchstart' in window);
 
@@ -14,15 +15,10 @@ function UnInVisible(options){
 	this.url = null;
 	this.image = null;
 	this.dimensions = {
-		// scaledX: null,
-		// scaledY: null,
-		// xMargin: null,
-		// yMargin: null,
 		scale: 1,
 		initialWidth: null,
 		initialHeight: null
 	};
-	this.sourceElement = null;
 
 	this.isAnimating = false;
 	this.isOpen = false;
@@ -46,7 +42,6 @@ function UnInVisible(options){
 	this._addTouch();
 }
 util.inherits(UnInVisible, EventEmitter);
-
 
 _.extend(UnInVisible.prototype, {
 	_createView: function(){
@@ -81,17 +76,23 @@ _.extend(UnInVisible.prototype, {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
-	_addClickListeners: function(target){
+	_addClickListeners: function(){
 		var Uninvisible = this;
+		var e = Uninvisible.settings.clickEvent;
 
-		document.addEventListener('click', _onClick);
+		var targets = document.querySelectorAll('[data-uninvisible]');
+		for(var i = 0; i < targets.length; i++){
+			targets[i].addEventListener(e, _onClick);
+		}
 
 		Uninvisible.on('destroy', function(){
-			document.removeEventListener('click', _onClick);
+				for(var i = 0; i < targets.length; i++){
+					targets[i].removeEventListener(e, _onClick);
+				}
 		});
 
 		function _onClick(e){
-			if(e.target.classList.contains(target) && !e.target.classList.contains('uninvisible-open') && !e.target.dataset.nozoom){
+			if(!e.target.classList.contains('uninvisible-open') && !e.target.dataset.uninvisibleNozoom && !e.target.dataset.nozoom){
 				Uninvisible.open(e.target);
 			}
 		}
@@ -109,13 +110,6 @@ _.extend(UnInVisible.prototype, {
 			}
 		}
 		options = options || {};
-
-		// // if img is in a link, don't open it
-		// var node = img;
-		// while(node != null){
-		// 	if(node.tagName == 'A') return;
-		// 	node = node.parentNode;
-		// }
 
 		Uninvisible._setupImage(img, options, function(){
 			Uninvisible.setCaption(options);
@@ -176,18 +170,17 @@ _.extend(UnInVisible.prototype, {
 
 	_setupCloseListener: function(){
 		var Uninvisible = this;
-		var container = Uninvisible.container;
 
-		container.addEventListener(Uninvisible.settings.clickEvent, closeImg);
+		this.touch.on('tap', closeImg);
+
 		function closeImg(e){
-			e.stopPropagation();
+			e.srcEvent.stopPropagation();
 			e.preventDefault();
 			Uninvisible.close.bind(Uninvisible)();
 		}
 
 		var xListener = function(){
-			container.removeEventListener(Uninvisible.settings.clickEvent, closeImg);
-			Uninvisible.removeListener('close', xListener);
+			this.touch.off('tap', closeImg);
 		};
 
 		Uninvisible.on('close', xListener);
@@ -270,7 +263,6 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible.sourceElement.classList.add('uninvisible-open');
 		}
 
-
 		function _onOpenComplete(){
 			Uninvisible.isAnimating = false;
 			Uninvisible.isOpen = true;
@@ -280,8 +272,6 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible._turnOffTransitions();
 
 			Uninvisible.emit('open:after');
-
-			// if(typeof cb === 'function') cb();
 		}
 	},
 
@@ -320,8 +310,6 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible._removeView();
 
 			Uninvisible.emit('close:after');
-
-			// if(typeof cb === 'function') cb();
 		}
 	},
 
@@ -354,15 +342,15 @@ _.extend(UnInVisible.prototype, {
 			var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain);
 
 			if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.settings.freeZoom){
-				console.log('freeZoom');
+				console.log('freeZoom, 6');
 				Uninvisible.orientation = 6;
 			} else if(imgSizeContain){
 				Uninvisible.orientation = 1;
 				 if(imgW < containerW && imgH < containerH){ // SMALLER THAN WINDOW
-					 console.log('contain, smaller than window');
+					 console.log('contain, smaller than window, 1');
 
 				 } else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-					 console.log('contained, horizontal');
+					 console.log('contained, horizontal, 1');
 
 					 scale = Uninvisible.dimensions.scale = (containerW / imgW);
 
@@ -370,7 +358,7 @@ _.extend(UnInVisible.prototype, {
 						 scale: scale
 					 });
 				} else { //..CONTAINED VERTICAL
-					console.log('contained, vertical');
+					console.log('contained, vertical, 1');
 
 					scale = Uninvisible.dimensions.scale = containerH / imgH;
 
@@ -387,7 +375,7 @@ _.extend(UnInVisible.prototype, {
 				console.log('small image: ', Uninvisible.orientation);
 		} else { // LARGE IMAGE..
 				if(imgW / imgH > containerW / containerH){
-					console.log('large, horizontal');
+					console.log('large, horizontal, 4');
 					Uninvisible.orientation = 4; //..HORIZONTAL
 
 					scale = Uninvisible.dimensions.scale = containerH / imgH;
@@ -396,7 +384,7 @@ _.extend(UnInVisible.prototype, {
 						scale: scale
 					});
 				} else {
-					console.log('large, vertical');
+					console.log('large, vertical, 5');
 					Uninvisible.orientation = 5; //..VERTICAL
 
 					scale = Uninvisible.dimensions.scale = containerW / imgW;
@@ -408,17 +396,12 @@ _.extend(UnInVisible.prototype, {
 			}
 
 
-
 		} else { // DEVICE
-
-
 			scale = Uninvisible.dimensions.scale = 1;
 			Uninvisible.orientation = 6;
 			imageElement.style.transform = 'scale(1)';
 
 			if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-				console.log('device contained, horizontal');
-
 				scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
 				Uninvisible.dimensions.initialWidth = containerW;
 
@@ -429,8 +412,6 @@ _.extend(UnInVisible.prototype, {
 					height: scaledHeight
 				});
 		 } else { //..CONTAINED VERTICAL
-			 console.log('device contained, vertical');
-
 			 scaledWidth = Uninvisible.dimensions.initialWidth = (containerH / imgH) * imgW;
 			 Uninvisible.dimensions.initialHeight = containerH;
 
@@ -541,14 +522,13 @@ _.extend(UnInVisible.prototype, {
 	},
 
 	_addTouch: function(){
-		this.touch = window.Hammer = new Touch.Manager(document.body,{
-
-		});
+		this.touch = window.Hammer = new Touch.Manager(this.container, {});
 
 		var pinch = new Touch.Pinch();
 		var rotate = new Touch.Rotate();
+		var tap = new Touch.Tap();
 
-		this.touch.add([pinch, rotate]);
+		this.touch.add([pinch, rotate, tap]);
 
 		this.touch.get('pinch').set({ enable: true });
 		this.touch.get('rotate').set({ enable: true });
