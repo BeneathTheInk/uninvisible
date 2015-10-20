@@ -3,6 +3,41 @@ var EventEmitter = require('events');
 var util = require('util');
 var raf = require('raf');
 var Touch = require('hammerjs');
+var Matrix = require("transformatrix");
+
+Matrix.prototype.clone = function(){
+	var clone = new Matrix();
+	clone.m = this.m.slice(0);
+
+	return clone;
+};
+
+Matrix.prototype.decompose = function(){
+  // calculate delta transform point
+  var px = deltaTransformPoint(this.m, { x: 0, y: 1 });
+  var py = deltaTransformPoint(this.m, { x: 1, y: 0 });
+
+  // calculate skew
+  var skewX = ((180 / Math.PI) * Math.atan2(px.y, px.x) - 90);
+  var skewY = ((180 / Math.PI) * Math.atan2(py.y, py.x));
+
+  return {
+      translateX: this.m[4],
+      translateY: this.m[5],
+      scaleX: Math.sqrt(this.m[0] * this.m[0] + this.m[1] * this.m[1]),
+      scaleY: Math.sqrt(this.m[2] * this.m[2] + this.m[3] * this.m[3]),
+      skewX: skewX,
+      skewY: skewY,
+      rotation: skewX // rotation is the same as skew x
+  };
+};
+
+function deltaTransformPoint(matrix, point)  {
+  var dx = point.x * matrix[0] + point.y * matrix[2] + 0;
+  var dy = point.x * matrix[1] + point.y * matrix[3] + 0;
+  return { x: dx, y: dy };
+}
+
 
 function UnInVisible(options){
 	this.options = options || {};
@@ -17,7 +52,9 @@ function UnInVisible(options){
 		// scaledY: null,
 		// xMargin: null,
 		// yMargin: null,
-		scale: 1
+		scale: 1,
+		initialWidth: null,
+		initialHeight: null
 	};
 	this.sourceElement = null;
 
@@ -324,6 +361,7 @@ _.extend(UnInVisible.prototype, {
 
 	_expand: function(options){
 		var Uninvisible = this;
+		var imageElement = Uninvisible.imageElement;
 
 		Uninvisible.emit('open:before');
 
@@ -333,80 +371,110 @@ _.extend(UnInVisible.prototype, {
 		var imgW = Uninvisible.image.naturalWidth,
 			imgH = Uninvisible.image.naturalHeight;
 
-		var scale;
+		var scale, scaledHeight, scaledWidth;
 
-		// Uninvisible.dimensions = {
-		// 	scaledX: imgW,
-		// 	scaledY: imgH,
-		// 	xMargin: containerW - imgW,
-		// 	yMargin: containerH - imgH
-		// }
+		if(!Uninvisible.isDevice){
+			Uninvisible._setImagePositionCSS({
+				left: (containerW - imgW) / 2,
+				top: (containerH - imgH) / 2,
+				width: imgW,
+				height: imgH
+			});
 
-		Uninvisible._setImagePositionCSS({
-			left: (containerW - imgW) / 2,
-			top: (containerH - imgH) / 2,
-			width: imgW,
-			height: imgH
-		});
+			Uninvisible._transformImage({
+				scale: 1
+			});
 
-		Uninvisible._transformImage({
-			scale: 1
-		});
+			var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain);
 
-		var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain);
+			if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.settings.freeZoom){
+				console.log('freeZoom');
+				Uninvisible.orientation = 6;
+			} else if(imgSizeContain){
+				Uninvisible.orientation = 1;
+				 if(imgW < containerW && imgH < containerH){ // SMALLER THAN WINDOW
+					 console.log('contain, smaller than window');
 
-		if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.settings.freeZoom){
-			console.log('freeZoom');
+				 } else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
+					 console.log('contained, horizontal');
+
+					 scale = Uninvisible.dimensions.scale = (containerW / imgW);
+
+					 Uninvisible._transformImage({
+						 scale: scale
+					 });
+				} else { //..CONTAINED VERTICAL
+					console.log('contained, vertical');
+
+					scale = Uninvisible.dimensions.scale = containerH / imgH;
+
+					Uninvisible._transformImage({
+						scale: scale
+					});
+				}
+			} else if(imgW < containerW || imgH < containerH){ // SMALL IMAGE..
+				if(imgW > containerW || imgH > containerH){
+					Uninvisible.orientation = imgW > containerW ? 2 : 3; //..LARGER HORIZONTALLY OR VERTICALLY
+				} else {
+					Uninvisible.orientation = 0; // ..SMALLER THAN WINDOW
+				}
+				console.log('small image: ', Uninvisible.orientation);
+		} else { // LARGE IMAGE..
+				if(imgW / imgH > containerW / containerH){
+					console.log('large, horizontal');
+					Uninvisible.orientation = 4; //..HORIZONTAL
+
+					scale = Uninvisible.dimensions.scale = containerH / imgH;
+
+					Uninvisible._transformImage({
+						scale: scale
+					});
+				} else {
+					console.log('large, vertical');
+					Uninvisible.orientation = 5; //..VERTICAL
+
+					scale = Uninvisible.dimensions.scale = containerW / imgW;
+
+					Uninvisible._transformImage({
+						scale: scale
+					});
+				}
+			}
+
+
+
+		} else { // DEVICE
+
+
+			scale = Uninvisible.dimensions.scale = 1;
 			Uninvisible.orientation = 6;
-		} else if(imgSizeContain){
-			Uninvisible.orientation = 1;
-			 if(imgW < containerW && imgH < containerH){ // SMALLER THAN WINDOW
-				 console.log('contain, smaller than window');
+			imageElement.style.transform = 'scale(1)';
 
-			 } else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-				 console.log('contained, horizontal');
+			if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
+				console.log('device contained, horizontal');
 
-				 scale = Uninvisible.dimensions.scale = (containerW / imgW);
+				scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
+				Uninvisible.dimensions.initialWidth = containerW;
 
-				 Uninvisible._transformImage({
-					 scale: scale
-				 });
-			} else { //..CONTAINED VERTICAL
-				console.log('contained, vertical');
-
-				scale = Uninvisible.dimensions.scale = containerH / imgH;
-
-				Uninvisible._transformImage({
-					scale: scale
+				Uninvisible._setImagePositionCSS({
+					left: 0,
+					top: (containerH - scaledHeight) / 2,
+					width: containerW,
+					height: scaledHeight
 				});
-			}
-		} else if(imgW < containerW || imgH < containerH){ // SMALL IMAGE..
-			if(imgW > containerW || imgH > containerH){
-				Uninvisible.orientation = imgW > containerW ? 2 : 3; //..LARGER HORIZONTALLY OR VERTICALLY
-			} else {
-				Uninvisible.orientation = 0; // ..SMALLER THAN WINDOW
-			}
-			console.log('small image: ', Uninvisible.orientation);
-	} else { // LARGE IMAGE..
-			if(imgW / imgH > containerW / containerH){
-				console.log('large, horizontal');
-				Uninvisible.orientation = 4; //..HORIZONTAL
+		 } else { //..CONTAINED VERTICAL
+			 console.log('device contained, vertical');
 
-				scale = Uninvisible.dimensions.scale = containerH / imgH;
+			 scaledWidth = Uninvisible.dimensions.initialWidth = (containerH / imgH) * imgW;
+			 Uninvisible.dimensions.initialHeight = containerH;
 
-				Uninvisible._transformImage({
-					scale: scale
-				});
-			} else {
-				console.log('large, vertical');
-				Uninvisible.orientation = 5; //..VERTICAL
-
-				scale = Uninvisible.dimensions.scale = containerW / imgW;
-
-				Uninvisible._transformImage({
-					scale: scale
-				});
-			}
+			 Uninvisible._setImagePositionCSS({
+ 				left: (containerW - scaledWidth) / 2,
+ 				top: 0,
+ 				width: (containerH / imgH) * imgW,
+ 				height: containerH
+ 			});
+		 }
 		}
 
 		Uninvisible.container.style.opacity = 1;
@@ -414,14 +482,14 @@ _.extend(UnInVisible.prototype, {
 
 	_transformImage: function(p){
 		var img = this.imageElement;
-		console.log('transform: ', p);
+
 		if(p.scale) img.style.transform = 'scale(' + p.scale + ')';
 		if(p.origin) img.style.transformOrigin = p.origin;
 	},
 
 	_setImagePositionCSS: function(p){
 		var img = this.imageElement;
-		console.log('css: ', p);
+
 		if(p.top || p.top === 0) img.style.top = p.top + 'px';
 		if(p.left || p.left === 0) img.style.left = p.left + 'px';
 		if(p.width) img.style.width = p.width + 'px';
@@ -544,7 +612,7 @@ _.extend(UnInVisible.prototype, {
 					xPercent = yPercent = 50,
 					x = xDest = containerW / 2,
 					y = yDest = containerH / 2,
-					startX, startY,
+					startXTouch, startYTouch,
 					followMouse;
 				var onTouchStart, onTouchEnd, handleTouchMove,
 					isTouching = false,
@@ -553,12 +621,19 @@ _.extend(UnInVisible.prototype, {
 					zoomXDif = zoomYDif = 0,
 					zoomX = zoomY = 0,
 					newScale;
-				var top = verticalMargin / 2,
-						left = horizontalMargin / 2,
-						origXMargin = (containerW - imgW),
+
+				var origXMargin = (containerW - imgW),
 						origYMargin = (containerH - imgH),
 						startLeft, startTop,
 						leftDest, topDest;
+
+				var location = imageElement.getBoundingClientRect();
+
+				var left = location.left;
+	      var top = location.top;
+
+				var currentImageWidth = Uninvisible.dimensions.initialWidth;
+				var currentImageHeight = Uninvisible.dimensions.initialHeight;
 
 
 
@@ -570,27 +645,25 @@ _.extend(UnInVisible.prototype, {
 		}, 1000/30);
 
 		onTouchStart = function(e){
-			if(Uninvisible.orientation < 2) return;
+			// if(Uninvisible.orientation < 2) return;
 
 			isTouching = true;
 
-			startX = e.pageX;
-			startY = e.pageY;
+			startXTouch = e.pageX;
+			startYTouch = e.pageY;
 
 			startLeft = left;
 			startTop = top;
 		};
 
 		handleTouchMove = _.throttle(function(e){
-			if(Uninvisible.orientation < 2 || isZooming === true) return;
-
-			left = (e.pageX - startX) + startLeft;
-			top = (e.pageY - startY) + startTop;
+			if(isZooming === true) return;
+			//
+			left = (e.pageX - startXTouch) + startLeft;
+			top = (e.pageY - startYTouch) + startTop;
 		}, 1000/30);
 
 		onTouchEnd = function(e){
-			if(Uninvisible.orientation < 2) return;
-
 			isTouching = false;
 		};
 
@@ -599,96 +672,161 @@ _.extend(UnInVisible.prototype, {
 		// 	console.log('rotate!!', e);
 		// });
 
-		var startCenterX, startCenterY;
+
+		var currentZoom,
+				startX, startY,
+				originX, originY,
+				scale,
+				deltaX, deltaY,
+				distance_to_origin_x, distance_to_origin_y;
+		var zoom = 1;
+		var panX = 0;
+		var panY = 0;
+
+		var previousDeltaX, previousDeltaY;
+		var previousOriginX = previousOriginY = 0;
+		var previousScale = 1;
+		var screenCenterX = containerW / 2;
+		var screenCenterY = containerH / 2;
+		var relCenterX, relCenterY;
+
+		var neo = new Matrix(); //Object.create(Matrix.prototype);
+
 		function onPinchStart(e){
-			Uninvisible.orientation = 6;
 			isZooming = true;
 
-			var difs = getZoomDif(e);
-			zoomXStart = difs.x;
-			zoomYStart = difs.y
+			startX = e.center.x;
+			startY = e.center.y;
 
-			startCenterX = e.center.x;
-			startCenterY = e.center.y;
+			var point = relativePoint(startX, startY);
 
-			startLeft = left;
-			startTop = top;
+			relCenterX = point[0];
+			relCenterY = point[1];
 		}
 
 		function onPinchMove(e){
-			setScale(e);
-
-			var x = e.center.x;
-			var y = e.center.y;
-
-			var w = imgW * scale;
-			var h = imgH * scale;
-
-			var xMar = containerW - w;
-			var yMar = containerH - h;
-
-			var imgCenterX = w / 2;
-			var imgCenterY = h / 2;
-
-			var windowCenterX = containerW / 2;
-			var windowCenterY = containerH / 2;
-
-			var viewLeft = imgCenterX - windowCenterX;
-			var viewTop = imgCenterY - windowCenterY;
-
-			var xLoc = viewLeft + x;
-			var yLoc = viewTop + y;
-
-			var xRatio = xLoc / w;
-			var yRatio = yLoc / h;
-
-			var trueLocX = imgW * xRatio;
-			var trueLocY = imgH * yRatio;
-
-			Uninvisible._transformImage({
-				origin: trueLocX + 'px ' + trueLocY + 'px'
-			});
-
-			left = startLeft - viewLeft;
-
-			Uninvisible._setImagePositionCSS({
-				left: left
-			});
+			applyToMatrix(neo.clone(), e);
 		}
 
 		function onPinchEnd(e){
-			scale = setScale(e);
 			setTimeout(function(){ isZooming = false; }, 200);
+			applyToMatrix(neo, e);
+			console.log(imageElement.getBoundingClientRect());
 		}
 
-		function setScale(e){
-			var difs = getZoomDif(e);
-			zoomXDif = (difs.x - zoomXStart);
-			zoomYDif = (difs.y - zoomYStart);
+		function applyToMatrix(matrix, e){
+			var stats = matrix.decompose();
 
-			var z = zoomXDif > zoomYDif ? zoomXDif : zoomYDif;
+			deltaX = (e.center.x - startX);
+			deltaY = (e.center.y - startY);
 
-			newScale = Math.max(scale + (z * (scale / 100)), minScale);
+			matrix.m[4] += deltaX;
+			matrix.m[5] += deltaY;
 
-			Uninvisible._transformImage({
-				scale: newScale
-			});
+			var relPoint = matrix.inverse().transformPoint(e.center.x, e.center.y);
+			var mod = new Matrix();
 
-			return newScale;
+			mod.translate(relPoint[0], relPoint[1]);
+			mod.scale(e.scale, e.scale);
+			mod.translate(-1 * relPoint[0], -1 * relPoint[1]);
+
+			matrix.multiply(mod);
+
+			// var beforePoint = screenToImage(matrix, e.center.x, e.center.y);
+//
+// 			var iM = new Matrix();
+//
+// 			iM.scale(e.scale, e.scale);
+// 			// iM.translate(deltaX, deltaY);
+//
+// 			// var afterPoint = relativePoint(e.center.x, e.center.y);
+// 			var afterPoint = iM.transformPoint(beforePoint[0], beforePoint[1]);
+//
+// 			matrix.multiply(iM);
+//
+// 			var after = imageToScreen(matrix, afterPoint[0], afterPoint[1]);
+// console.log(after[0] - e.center.x, after[1] - e.center.y);
+// 			// var diffPointX = afterPoint[0] - beforePoint[0];
+// 			// var diffPointY = afterPoint[1] - beforePoint[1];
+// 			//
+// 			// matrix.m[4] -= diffPointX;
+// 			// matrix.m[5] -= diffPointY;
+
+
+			imageElement.style.transform = "matrix(" + matrix.m.join(',') + ")";
 		}
 
-		function getZoomDif(e){
-			var p1 = e.pointers[0],
-					p2 = e.pointers[1];
+		function imageToScreen(matrix, px, py){
+			var origin = matrix.transformPoint(0, 0);
 
-			var difs = {
-				x: p1.screenX > p2.screenX ? e.center.x - p2.screenX : e.center.x - p1.screenX,
-				y: p1.screenY > p2.screenY ? e.center.y - p2.screenY : e.center.y - p1.screenY
-			};
+			var x = origin[0] + (px);
+			var y = origin[1] + (py);
 
-			return difs;
+			return [origin[0] + px, origin[1] + py]
 		}
 
+		function screenToImage(matrix, px, py){
+			var origin = matrix.transformPoint(0, 0);
+
+			return [ px - origin[0], py - origin[1]];
+		}
+
+		// var dif, diffs;
+		// function setScale(e){
+		// 	console.log(e);
+		// 	diffs = getZoomDif(e);
+		//
+		// 	var dif = Math.sqrt(Math.pow(diffs.x, 2), Math.pow(diffs.y, 2));
+		//
+		// 	scale = Math.max(scale + (dif * (scale / 100)), 0.9);
+		// }
+		//
+		// function getZoomDif(e){
+		// 	var p1 = e.pointers[0],
+		// 			p2 = e.pointers[1];
+		// 	var difs = {
+		// 		x: e.center.x - Math.sqrt(Math.pow(p1.screenX, 2), Math.pow(p2.screenX, 2)),
+		// 		y: e.center.y - Math.sqrt(Math.pow(p1.screenY, 2), Math.pow(p2.screenY, 2)),
+		// 	};
+		// 	// var difs = {
+		// 	// 	x: p1.screenX > p2.screenX ? e.center.x - p2.screenX : e.center.x - p1.screenX,
+		// 	// 	y: p1.screenY > p2.screenY ? e.center.y - p2.screenY : e.center.y - p1.screenY
+		// 	// };
+		//
+		// 	return difs;
+		// }
+
+
+		function positionImageDevice(){
+			return;
+			switch(Uninvisible.orientation){
+				case 0:
+				case 1:
+					break;
+				// HORIZONTAL
+				case 2:
+				case 4:
+
+					imageElement.style.left = left + 'px';
+					break;
+				// VERTICAL
+				case 3:
+				case 5:
+					imageElement.style.top = top + 'px';
+					break;
+				// FREE SCROLL
+				case 6:
+					// scaledMarginX = containerW - (imgW * scale);
+					// scaledMarginY = containerH - (imgH * scale);
+
+					// left = Math.min(Math.max(left, scaledMarginX - (imgW - (imgW * scale))), scaledMarginX + (imgW - (imgW * scale)));
+					// left = Math.max(left, (origXMargin - (origXMargin - (scaledMarginX))));
+
+					imageElement.style.left = left + 'px';
+					imageElement.style.top = top + 'px';
+					break;
+			}
+		}
 
 
 
@@ -771,36 +909,6 @@ _.extend(UnInVisible.prototype, {
 			}
 		}
 
-		function positionImageDevice(){
-			switch(Uninvisible.orientation){
-				case 0:
-				case 1:
-					break;
-				// HORIZONTAL
-				case 2:
-				case 4:
-
-					imageElement.style.left = left + 'px';
-					break;
-				// VERTICAL
-				case 3:
-				case 5:
-					imageElement.style.top = top + 'px';
-					break;
-				// FREE SCROLL
-				case 6:
-					scaledMarginX = containerW - (imgW * scale);
-					scaledMarginY = containerH - (imgH * scale);
-
-					// left = Math.min(Math.max(left, scaledMarginX - (imgW - (imgW * scale))), scaledMarginX + (imgW - (imgW * scale)));
-					// left = Math.max(left, (origXMargin - (origXMargin - (scaledMarginX))));
-
-					imageElement.style.left = left + 'px';
-					imageElement.style.top = top + 'px';
-					break;
-			}
-		}
-
 
 
 
@@ -846,6 +954,8 @@ _.extend(UnInVisible.prototype, {
 				Uninvisible.touch.off('pinchstart', onPinchStart);
 				Uninvisible.touch.off('pinchmove', onPinchMove);
 				Uninvisible.touch.off('pinchend', onPinchEnd);
+
+				delete neo;
 			} else {
 				removeEventListener('mousemove', followMouse);
 			}

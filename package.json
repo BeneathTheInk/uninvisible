@@ -18,6 +18,7 @@
   "dependencies": {
     "hammerjs": "^2.0.4",
     "raf": "^3.1.0",
+    "transformatrix": "^1.1.1",
     "underscore": "~1.8.3"
   },
   "scripts": {
