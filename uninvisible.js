@@ -118,15 +118,23 @@ _.extend(UnInVisible.prototype, {
 
 	_addClickListeners: function(target){
 		var Uninvisible = this;
+		var e = Uninvisible.settings.clickEvent;
 
-		document.addEventListener('click', _onClick);
+		// document.addEventListener(e, _onClick);
+		var targets = document.querySelectorAll(target);
+		for(var i = 0; i < targets.length; i++){
+			targets[i].addEventListener(e, _onClick);
+		}
 
 		Uninvisible.on('destroy', function(){
-			document.removeEventListener('click', _onClick);
+				// document.removeEventListener(e, _onClick);
+				for(var i = 0; i < targets.length; i++){
+					targets[i].removeEventListener(e, _onClick);
+				}
 		});
 
 		function _onClick(e){
-			if(e.target.classList.contains(target) && !e.target.classList.contains('uninvisible-open') && !e.target.dataset.nozoom){
+			if(!e.target.classList.contains('uninvisible-open') && !e.target.dataset.uninvisibleNozoom && !e.target.dataset.nozoom){
 				Uninvisible.open(e.target);
 			}
 		}
