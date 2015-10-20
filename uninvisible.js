@@ -4,10 +4,10 @@ var util = require('util');
 var raf = require('raf');
 var Touch = require('hammerjs');
 var Paper = require("./vendor/paper");
+var domready = require("domready");
 
-function UnInVisible(options){
-	options = options || {};
-	this.options = options;
+function UnInVisible(options) {
+	this.options = _.clone(UnInVisible.defaults);
 
 	this.isDevice = !!('ontouchstart' in window);
 
@@ -30,20 +30,47 @@ function UnInVisible(options){
 		// 4 = fullscreen horizontal
 		// 5 = fullscreen vertical
 		// 6 = fullscreen free scroll
-	this.settings = {
-		contain: false, // all images will be contained within the view, no zoom.
-		animationSpeed: options.animationSpeed || 400,
-		trackSpeed: options.trackSpeed ? Math.max(Math.min(options.trackSpeed, 1), 0.01) : 0.5,
-		clickEvent: options.clickEvent || 'click'
-	};
 
-	this._createView();
-	if(options.target !== false) this._addClickListeners(options.target || 'uninvisible');
-	this._addTouch();
+	domready(function() {
+		this._createView();
+		this._addTouch();
+		this._setupDocument(document);
+	}.bind(this));
 }
+
 util.inherits(UnInVisible, EventEmitter);
 
+UnInVisible.defaults = {
+	document: document,
+	contains: false,
+	animationSpeed: 400,
+	trackSpeed: 0.5
+};
+
 _.extend(UnInVisible.prototype, {
+	setOptions: function(options) {
+		_.extend(this.options, options);
+		return this;
+	},
+
+	_setupDocument: function(doc) {
+		// find all links in the document and add click events
+		var self = this;
+		var evts = [];
+
+		_.each(doc.querySelectorAll('[data-uninvisible]'), function(t) {
+			var onClick;
+			t.addEventListener("click", onClick = self.open.bind(self, t));
+			evts.push([t,onClick]);
+		});
+
+		self.once('destroy', function() {
+			evts.forEach(function(e) {
+				e[0].removeEventListener("click", e[1]);
+			});
+		});
+	},
+
 	_createView: function(){
 		if(this.imageElement) return;
 
@@ -76,27 +103,9 @@ _.extend(UnInVisible.prototype, {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
-	_addClickListeners: function(){
-		var Uninvisible = this;
-		var e = Uninvisible.settings.clickEvent;
-
-		var targets = document.querySelectorAll('[data-uninvisible]');
-		for(var i = 0; i < targets.length; i++){
-			targets[i].addEventListener(e, _onClick);
-		}
-
-		Uninvisible.on('destroy', function(){
-				for(var i = 0; i < targets.length; i++){
-					targets[i].removeEventListener(e, _onClick);
-				}
-		});
-
-		function _onClick(e){
-			if(!e.target.classList.contains('uninvisible-open') && !e.target.dataset.uninvisibleNozoom && !e.target.dataset.nozoom){
-				Uninvisible.open(e.target);
-			}
-		}
-	},
+	// _addClickListeners: function(){
+	//
+	// },
 
 	open: function(img, options, cb){
 		var Uninvisible = this;
@@ -287,7 +296,7 @@ _.extend(UnInVisible.prototype, {
 		// FIXES BUG WHERE ANIMATION LISTENER DOESNT FIRE WHEN NOT RETURNING TO AN ELEMENT ON THE PAGE
 		setTimeout(function(){
 			if(Uninvisible.isAnimating === true) _onCloseComplete();
-		}, Uninvisible.settings.animationSpeed);
+		}, Uninvisible.options.animationSpeed);
 
 		function _onCloseComplete(){
 			Uninvisible.isAnimating = false;
@@ -339,9 +348,9 @@ _.extend(UnInVisible.prototype, {
 				scale: 1
 			});
 
-			var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.settings.contain);
+			var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.options.contain);
 
-			if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.settings.freeZoom){
+			if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.options.freeZoom){
 				console.log('freeZoom, 6');
 				Uninvisible.orientation = 6;
 			} else if(imgSizeContain){
@@ -475,7 +484,7 @@ _.extend(UnInVisible.prototype, {
 	_turnOnTransitions: function(){
 		var imageElement = this.imageElement;
 		var container = this.container;
-		var speed = (this.settings.animationSpeed / 1000) + 's';
+		var speed = (this.options.animationSpeed / 1000) + 's';
 
 		imageElement.style.webkitTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
 		imageElement.style.oTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
@@ -730,7 +739,7 @@ _.extend(UnInVisible.prototype, {
 
 
 
-		var SLIDE_SPEED = Uninvisible.settings.trackSpeed;
+		var SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
 
 		function positionImageDesktop(){
 			switch(Uninvisible.orientation){
@@ -870,5 +879,4 @@ _.extend(UnInVisible.prototype, {
 	},
 });
 
-
-module.exports = UnInVisible;
+var U = module.exports = new UnInVisible();
