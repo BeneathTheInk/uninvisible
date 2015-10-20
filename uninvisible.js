@@ -40,7 +40,8 @@ function deltaTransformPoint(matrix, point)  {
 
 
 function UnInVisible(options){
-	this.options = options || {};
+	options = options || {};
+	this.options = options;
 
 	this.isDevice = !!('ontouchstart' in window);
 
