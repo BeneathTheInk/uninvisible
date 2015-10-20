@@ -110,11 +110,11 @@ _.extend(UnInVisible.prototype, {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
-	_addClickListeners: function(target){
+	_addClickListeners: function(){
 		var Uninvisible = this;
 		var e = Uninvisible.settings.clickEvent;
 
-		var targets = document.querySelectorAll(target);
+		var targets = document.querySelectorAll('[data-uninvisible]');
 		for(var i = 0; i < targets.length; i++){
 			targets[i].addEventListener(e, _onClick);
 		}
@@ -208,7 +208,7 @@ _.extend(UnInVisible.prototype, {
 		this.touch.on('tap', closeImg);
 
 		function closeImg(e){
-			e.stopPropagation();
+			e.srcEvent.stopPropagation();
 			e.preventDefault();
 			Uninvisible.close.bind(Uninvisible)();
 		}
@@ -560,8 +560,9 @@ _.extend(UnInVisible.prototype, {
 
 		var pinch = new Touch.Pinch();
 		var rotate = new Touch.Rotate();
+		var tap = new Touch.Tap();
 
-		this.touch.add([pinch, rotate]);
+		this.touch.add([pinch, rotate, tap]);
 
 		this.touch.get('pinch').set({ enable: true });
 		this.touch.get('rotate').set({ enable: true });
