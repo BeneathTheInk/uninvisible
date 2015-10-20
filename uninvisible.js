@@ -219,9 +219,9 @@ _.extend(UnInVisible.prototype, {
 
 	_setupCloseListener: function(){
 		var Uninvisible = this;
-		var container = Uninvisible.container;
 
-		container.addEventListener(Uninvisible.settings.clickEvent, closeImg);
+		this.touch.on('tap', closeImg);
+
 		function closeImg(e){
 			e.stopPropagation();
 			e.preventDefault();
@@ -229,8 +229,7 @@ _.extend(UnInVisible.prototype, {
 		}
 
 		var xListener = function(){
-			container.removeEventListener(Uninvisible.settings.clickEvent, closeImg);
-			Uninvisible.removeListener('close', xListener);
+			this.touch.off('tap', closeImg);
 		};
 
 		Uninvisible.on('close', xListener);
@@ -584,7 +583,7 @@ _.extend(UnInVisible.prototype, {
 	},
 
 	_addTouch: function(){
-		this.touch = window.Hammer = new Touch.Manager(document.body,{
+		this.touch = window.Hammer = new Touch.Manager(this.container,{
 
 		});
 
