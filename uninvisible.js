@@ -3,41 +3,7 @@ var EventEmitter = require('events');
 var util = require('util');
 var raf = require('raf');
 var Touch = require('hammerjs');
-var Matrix = require("transformatrix");
-
-Matrix.prototype.clone = function(){
-	var clone = new Matrix();
-	clone.m = this.m.slice(0);
-
-	return clone;
-};
-
-Matrix.prototype.decompose = function(){
-  // calculate delta transform point
-  var px = deltaTransformPoint(this.m, { x: 0, y: 1 });
-  var py = deltaTransformPoint(this.m, { x: 1, y: 0 });
-
-  // calculate skew
-  var skewX = ((180 / Math.PI) * Math.atan2(px.y, px.x) - 90);
-  var skewY = ((180 / Math.PI) * Math.atan2(py.y, py.x));
-
-  return {
-      translateX: this.m[4],
-      translateY: this.m[5],
-      scaleX: Math.sqrt(this.m[0] * this.m[0] + this.m[1] * this.m[1]),
-      scaleY: Math.sqrt(this.m[2] * this.m[2] + this.m[3] * this.m[3]),
-      skewX: skewX,
-      skewY: skewY,
-      rotation: skewX // rotation is the same as skew x
-  };
-};
-
-function deltaTransformPoint(matrix, point)  {
-  var dx = point.x * matrix[0] + point.y * matrix[2] + 0;
-  var dy = point.x * matrix[1] + point.y * matrix[3] + 0;
-  return { x: dx, y: dy };
-}
-
+var Paper = require("./vendor/paper");
 
 function UnInVisible(options){
 	this.options = options || {};
@@ -690,85 +656,38 @@ _.extend(UnInVisible.prototype, {
 		var screenCenterY = containerH / 2;
 		var relCenterX, relCenterY;
 
-		var neo = new Matrix(); //Object.create(Matrix.prototype);
+		var matrix = new Paper.Matrix();
+		var panOrigin;
 
 		function onPinchStart(e){
 			isZooming = true;
-
-			startX = e.center.x;
-			startY = e.center.y;
-
-			var point = relativePoint(startX, startY);
-
-			relCenterX = point[0];
-			relCenterY = point[1];
+			panOrigin = screenToImage(matrix, e.center.x, e.center.y);
 		}
 
 		function onPinchMove(e){
-			applyToMatrix(neo.clone(), e);
+			applyToMatrix(matrix.clone(), e);
 		}
 
 		function onPinchEnd(e){
 			setTimeout(function(){ isZooming = false; }, 200);
-			applyToMatrix(neo, e);
-			console.log(imageElement.getBoundingClientRect());
+			applyToMatrix(matrix, e);
 		}
 
-		function applyToMatrix(matrix, e){
-			var stats = matrix.decompose();
+		function screenToImage(matrix, x, y) {
+			if (typeof x === "object") {
+				y = x.y;
+				x = x.x;
+			}
 
-			deltaX = (e.center.x - startX);
-			deltaY = (e.center.y - startY);
-
-			matrix.m[4] += deltaX;
-			matrix.m[5] += deltaY;
-
-			var relPoint = matrix.inverse().transformPoint(e.center.x, e.center.y);
-			var mod = new Matrix();
-
-			mod.translate(relPoint[0], relPoint[1]);
-			mod.scale(e.scale, e.scale);
-			mod.translate(-1 * relPoint[0], -1 * relPoint[1]);
-
-			matrix.multiply(mod);
-
-			// var beforePoint = screenToImage(matrix, e.center.x, e.center.y);
-//
-// 			var iM = new Matrix();
-//
-// 			iM.scale(e.scale, e.scale);
-// 			// iM.translate(deltaX, deltaY);
-//
-// 			// var afterPoint = relativePoint(e.center.x, e.center.y);
-// 			var afterPoint = iM.transformPoint(beforePoint[0], beforePoint[1]);
-//
-// 			matrix.multiply(iM);
-//
-// 			var after = imageToScreen(matrix, afterPoint[0], afterPoint[1]);
-// console.log(after[0] - e.center.x, after[1] - e.center.y);
-// 			// var diffPointX = afterPoint[0] - beforePoint[0];
-// 			// var diffPointY = afterPoint[1] - beforePoint[1];
-// 			//
-// 			// matrix.m[4] -= diffPointX;
-// 			// matrix.m[5] -= diffPointY;
-
-
-			imageElement.style.transform = "matrix(" + matrix.m.join(',') + ")";
+			return matrix.inverseTransform(new Paper.Point(x - screenCenterX, y - screenCenterY));
 		}
 
-		function imageToScreen(matrix, px, py){
-			var origin = matrix.transformPoint(0, 0);
-
-			var x = origin[0] + (px);
-			var y = origin[1] + (py);
-
-			return [origin[0] + px, origin[1] + py]
-		}
-
-		function screenToImage(matrix, px, py){
-			var origin = matrix.transformPoint(0, 0);
-
-			return [ px - origin[0], py - origin[1]];
+		function applyToMatrix(matrix, e) {
+			var center = screenToImage(matrix, e.center.x, e.center.y);
+			matrix.translate(center.x - panOrigin.x, center.y - panOrigin.y);
+			matrix.scale(e.scale, panOrigin);
+			var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
+			imageElement.style.transform = "matrix(" + t + ")";
 		}
 
 		// var dif, diffs;
