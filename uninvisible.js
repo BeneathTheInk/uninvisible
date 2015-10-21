@@ -105,14 +105,14 @@ _.extend(UnInVisible.prototype, {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
-	// _addClickListeners: function(){
-	//
-	// },
-
 	open: function(img, options, cb){
 		var Uninvisible = this;
 
 		if(Uninvisible.isAnimating || Uninvisible.isOpen) return;
+
+		if(typeof img !== 'string' && img.nodeType === 1){
+			if(closest(img, '[data-uninvisible-nozoom]', true)) return;
+		}
 
 		if(options){
 			if(typeof options === 'function' && cb == null){
