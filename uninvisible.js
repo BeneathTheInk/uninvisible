@@ -654,14 +654,20 @@ _.extend(UnInVisible.prototype, {
 		}
 
 		function onPinchMove(e){
+			// applied to a clone of the matrix so the next move resets
 			applyToMatrix(matrix.clone(), e);
 		}
 
 		function onPinchEnd(e){
 			setTimeout(function(){ isZooming = false; }, 200);
+
+			// applied to the actual matrix so the next zoom applies on top
 			applyToMatrix(matrix, e);
+			panOrigin = null;
 		}
 
+		// converts a point on the screen to a point on the image
+		// origin of image is the center, not the top-left corner like the window
 		function screenToImage(matrix, x, y) {
 			if (typeof x === "object") {
 				y = x.y;
@@ -671,10 +677,19 @@ _.extend(UnInVisible.prototype, {
 			return matrix.inverseTransform(new Paper.Point(x - screenCenterX, y - screenCenterY));
 		}
 
+		// transform a matrix according to an event
 		function applyToMatrix(matrix, e) {
+			// normalize the touch point relative to the image
 			var center = screenToImage(matrix, e.center.x, e.center.y);
+
+			// translate the image by the amount moved
 			matrix.translate(center.x - panOrigin.x, center.y - panOrigin.y);
+
+			// scale the image by the amount scaled
+			// this is relative to the origin point, not the current touch location
 			matrix.scale(e.scale, panOrigin);
+
+			// rasterize the matrix and apply it
 			var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
 			imageElement.style.transform = "matrix(" + t + ")";
 		}
