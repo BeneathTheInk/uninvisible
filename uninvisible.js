@@ -44,7 +44,7 @@ UnInVisible.defaults = {
 	document: document,
 	contains: false,
 	animationSpeed: 400,
-	trackSpeed: 0.08
+	trackSpeed: 0.085
 };
 
 _.extend(UnInVisible.prototype, {
@@ -528,13 +528,14 @@ _.extend(UnInVisible.prototype, {
 		this.touch = window.Hammer = new Touch.Manager(this.container, {});
 
 		var pinch = new Touch.Pinch();
-		var rotate = new Touch.Rotate();
+		// var rotate = new Touch.Rotate();
 		var tap = new Touch.Tap();
+		// pinch.recognizeWith(rotate);
 
-		this.touch.add([pinch, rotate, tap]);
+		this.touch.add([pinch, tap]);
 
 		this.touch.get('pinch').set({ enable: true });
-		this.touch.get('rotate').set({ enable: true });
+		// this.touch.get('rotate').set({ enable: true });
 	},
 
 	_initTrackingMouse: function(){
@@ -638,16 +639,11 @@ _.extend(UnInVisible.prototype, {
 	_initTrackingTouch: function(){
 		var Uninvisible = this;
 
-		var containerW = window.innerWidth,
-				containerH = window.innerHeight;
-
 		var onTouchStart, onTouchEnd, handleTouchMove,
 			isTouching = false,
 			isZooming = false,
 			startXTouch, startYTouch;
 
-		var screenCenterX = containerW / 2;
-		var screenCenterY = containerH / 2;
 		var relCenterX, relCenterY;
 
 		var matrix = Uninvisible.matrix = new Paper.Matrix();
@@ -655,86 +651,48 @@ _.extend(UnInVisible.prototype, {
 
 		function onPinchStart(e){
 			isZooming = true;
-			panOrigin = screenToImage(matrix, e.center.x, e.center.y);
+			panOrigin = Uninvisible._screenToImage(matrix, e.center.x, e.center.y);
 		}
 
 		function onPinchMove(e){
 			// applied to a clone of the matrix so the next move resets
-			applyToMatrix(matrix.clone(), e.center.x, e.center.y, e.scale);
+			Uninvisible._applyToMatrix(matrix.clone(), panOrigin, e.center.x, e.center.y, e.scale);
 		}
 
 		function onPinchEnd(e){
 			setTimeout(function(){ isZooming = false; }, 200);
 
 			// applied to the actual matrix so the next zoom applies on top
-			applyToMatrix(matrix, e.center.x, e.center.y, e.scale);
+			Uninvisible._applyToMatrix(matrix, panOrigin, e.center.x, e.center.y, e.scale);
 			panOrigin = null;
 
 			Uninvisible._checkLocation();
-		}
-
-		// converts a point on the screen to a point on the image
-		// origin of image is the center, not the top-left corner like the window
-		function screenToImage(matrix, x, y) {
-			if (typeof x === "object") {
-				y = x.y;
-				x = x.x;
-			}
-
-			return matrix.inverseTransform(new Paper.Point(x - screenCenterX, y - screenCenterY));
-		}
-
-		// transform a matrix according to an event
-		function applyToMatrix(matrix, x, y, scale) {
-			// normalize the touch point relative to the image
-			var center = screenToImage(matrix, x, y);
-
-			// translate the image by the amount moved
-			if(panOrigin) matrix.translate(center.x - panOrigin.x, center.y - panOrigin.y);
-
-			// scale the image by the amount scaled
-			// this is relative to the origin point, not the current touch location
-
-			if(scale) matrix.scale(scale, panOrigin);
-
-			// rasterize the matrix and apply it
-			var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
-			// imageElement.style.transform = "matrix(" + t + ")";
-			Uninvisible._transform(t);
 		}
 
 		onTouchStart = function(e){
 			if(isZooming === true) return;
 			isTouching = true;
 
-			panOrigin = screenToImage(matrix, e.pageX, e.pageY);
-
-			// startXTouch = e.pageX;
-			// startYTouch = e.pageY;
-
-			// startLeft = left;
-			// startTop = top;
+			panOrigin = Uninvisible._screenToImage(matrix, e.pageX, e.pageY);
 		};
 
 		handleTouchMove = _.throttle(function(e){
 			if(isZooming === true) return;
 
 			// applied to a clone of the matrix so the next move resets
-			applyToMatrix(matrix.clone(), e.pageX, e.pageY, null);
-
-			//
-			// left = (e.pageX - startXTouch) + startLeft;
-			// top = (e.pageY - startYTouch) + startTop;
+			Uninvisible._applyToMatrix(matrix.clone(), panOrigin, e.pageX, e.pageY, null);
 		}, 1000/30);
 
 		onTouchEnd = function(e){
 			if(isZooming === true) return;
 
 			// applied to the actual matrix so the next zoom applies on top
-			applyToMatrix(matrix, e.pageX, e.pageY, null);
+			Uninvisible._applyToMatrix(matrix, panOrigin, e.pageX, e.pageY, null);
 			panOrigin = null;
 
 			isTouching = false;
+
+			Uninvisible._checkLocation();
 		};
 
 
@@ -758,6 +716,42 @@ _.extend(UnInVisible.prototype, {
 		Uninvisible.on('close', xListener);
 	},
 
+
+	// converts a point on the screen to a point on the image
+	// origin of image is the center, not the top-left corner like the window
+	_screenToImage: function(matrix, x, y) {
+		var containerW = window.innerWidth,
+				containerH = window.innerHeight;
+
+		var screenCenterX = containerW / 2;
+		var screenCenterY = containerH / 2;
+
+		if (typeof x === "object") {
+			y = x.y;
+			x = x.x;
+		}
+
+		return matrix.inverseTransform(new Paper.Point(x - screenCenterX, y - screenCenterY));
+	},
+
+	// transform a matrix according to an event
+	_applyToMatrix: function(matrix, panOrigin, x, y, scale) {
+		// normalize the touch point relative to the image
+		var center = this._screenToImage(matrix, x, y);
+
+		// translate the image by the amount moved
+		if(panOrigin) matrix.translate(center.x - panOrigin.x, center.y - panOrigin.y);
+
+		// scale the image by the amount scaled
+		// this is relative to the origin point, not the current touch location
+		if(scale) matrix.scale(scale, panOrigin);
+
+		// rasterize the matrix and apply it
+		var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
+		// imageElement.style.transform = "matrix(" + t + ")";
+		this._transform(t);
+	},
+
 	_transform: function(t){
 		if(typeof t === 'array'){
 			t = t.join(",");
@@ -769,7 +763,35 @@ _.extend(UnInVisible.prototype, {
 	_checkLocation: function(){
 		var matrix = this.matrix;
 
-		console.log(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty);
+		// snap scale to 1 if is smaller
+		if(matrix.a < 1){
+			matrix.a = 1;
+			matrix.b = 0;
+			matrix.c = 0;
+			matrix.d = 1;
+			matrix.tx = 0;
+			matrix.ty = 0;
+		}
+
+		var containerW = window.innerWidth,
+				containerH = window.innerHeight;
+
+		var scaledWidth = this.dimensions.initialWidth * matrix.a,
+				scaledHeight = this.dimensions.initialHeight * matrix.a;
+
+		var fromLeft = (scaledWidth / 2) - (matrix.tx + (containerW / 2));
+		var fromRight = fromLeft - (scaledWidth - containerW);
+
+		if((fromLeft < 0 && fromRight < 0 && scaledWidth >= containerW) || (fromLeft > 0 && fromRight > 0 && scaledWidth < containerW)) matrix.tx += fromLeft;
+		if((fromLeft < 0 && fromRight < 0 && scaledWidth < containerW) || (fromLeft > 0 && fromRight > 0 && scaledWidth >= containerW)) matrix.tx += fromRight;
+
+		var fromTop = (scaledHeight/ 2) - (matrix.ty + (containerH / 2));
+		var fromBottom = fromTop - (scaledHeight - containerH);
+
+		if((fromTop < 0 && fromBottom < 0 && scaledHeight >= containerH) || (fromBottom > 0 && fromTop > 0 && scaledHeight < containerH)) matrix.ty += fromTop;
+		if((fromTop < 0 && fromBottom < 0 && scaledHeight < containerH) || (fromBottom > 0 && fromTop > 0 && scaledHeight >= containerH)) matrix.ty += fromBottom;
+
+		this._transform([matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty]);
 	},
 
 	destroy: function(){
