@@ -34,7 +34,7 @@ function UnInVisible(options) {
 	domready(function() {
 		this._createView();
 		this._addTouch();
-		this._setupDocument(document);
+		this._setupDocument();
 	}.bind(this));
 }
 
@@ -54,6 +54,9 @@ _.extend(UnInVisible.prototype, {
 	},
 
 	_setupDocument: function(doc) {
+		if(doc) this.options.document = doc;
+		doc = doc || document;
+
 		// find all links in the document and add click events
 		var self = this;
 		var evts = [];
