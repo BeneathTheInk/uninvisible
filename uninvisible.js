@@ -194,27 +194,25 @@ _.extend(UnInVisible.prototype, {
 			this.touch.off('tap', closeImg);
 		};
 
-		Uninvisible.on('close', xListener);
+		Uninvisible.on('close:start', xListener);
 	},
 
 	close: function(options, cb){
 		if(this.isAnimating) return;
 
-		this.emit('close:before');
-
-		if(options){
-			if(typeof options === 'function' && cb == null){
-				cb = options;
-				options = {};
-			}
-		}
-		options = options || {};
+		// if(options){
+		// 	if(typeof options === 'function' && cb == null){
+		// 		cb = options;
+		// 		options = {};
+		// 	}
+		// }
+		// options = options || {};
 
 		this._close();
 	},
 
 	closeViewerImmediately: function(){
-		this.emit('close');
+		this.emit('close:start');
 		this.container.style.display = 'none';
 		this.clearCaption();
 	},
@@ -250,7 +248,7 @@ _.extend(UnInVisible.prototype, {
 		var Uninvisible = this;
 
 		UnInVisible.isAnimating = true;
-		Uninvisible.emit('open');
+		Uninvisible.emit('open:start');
 
 		Uninvisible._transformImage({
 			origin: '50% 50%'
@@ -287,7 +285,7 @@ _.extend(UnInVisible.prototype, {
 				Uninvisible._initTrackingMouse();
 			}
 
-			Uninvisible.emit('open:after');
+			Uninvisible.emit('open');
 		}
 	},
 
@@ -295,7 +293,7 @@ _.extend(UnInVisible.prototype, {
 		var Uninvisible = this;
 		Uninvisible._turnOnTransitions();
 		Uninvisible.isAnimating = true;
-		this.emit('close');
+		this.emit('close:start');
 
 		Uninvisible._addAnimationCompleteListener(_onCloseComplete);
 		Uninvisible._setToImgLocation();
@@ -325,15 +323,13 @@ _.extend(UnInVisible.prototype, {
 
 			Uninvisible._removeView();
 
-			Uninvisible.emit('close:after');
+			Uninvisible.emit('close');
 		}
 	},
 
 	_expand: function(options){
 		var Uninvisible = this;
 		var imageElement = Uninvisible.imageElement;
-
-		Uninvisible.emit('open:before');
 
 		var containerW = window.innerWidth,
 			containerH = window.innerHeight;
@@ -630,12 +626,12 @@ _.extend(UnInVisible.prototype, {
 		}
 
 		var xListener = function(){
-			Uninvisible.removeListener('close', xListener);
+			Uninvisible.removeListener('close:start', xListener);
 			removeEventListener('mousemove', followMouse);
 			raf.cancel(looper);
 		};
 
-		Uninvisible.on('close', xListener);
+		Uninvisible.on('close:start', xListener);
 	},
 
 	_initTrackingTouch: function(){
@@ -708,14 +704,14 @@ _.extend(UnInVisible.prototype, {
 		this.imageElement.addEventListener("touchmove", handleTouchMove);
 
 		var xListener = function(){
-			Uninvisible.removeListener('close', xListener);
+			Uninvisible.removeListener('close:start', xListener);
 			Uninvisible.imageElement.removeEventListener("touchmove", handleTouchMove);
 			Uninvisible.touch.off('pinchstart', onPinchStart);
 			Uninvisible.touch.off('pinchmove', onPinchMove);
 			Uninvisible.touch.off('pinchend', onPinchEnd);
 		};
 
-		Uninvisible.on('close', xListener);
+		Uninvisible.on('close:start', xListener);
 	},
 
 
