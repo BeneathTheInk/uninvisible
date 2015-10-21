@@ -5,6 +5,7 @@ var raf = require('raf');
 var Touch = require('hammerjs');
 var Paper = require("./vendor/paper");
 var domready = require("domready");
+var closest = require("closest");
 
 function UnInVisible(options) {
 	this.options = _.clone(UnInVisible.defaults);
@@ -59,18 +60,16 @@ _.extend(UnInVisible.prototype, {
 
 		// find all links in the document and add click events
 		var self = this;
-		var evts = [];
 
-		_.each(doc.querySelectorAll('[data-uninvisible]'), function(t) {
-			var onClick;
-			t.addEventListener("click", onClick = self.open.bind(self, t));
-			evts.push([t,onClick]);
-		});
+		function onClick(e){
+			var target = closest(e.target, '[data-uninvisible]', true);
+			if(target) self.open(target);
+		};
+
+		doc.addEventListener("click", onClick);
 
 		self.once('destroy', function() {
-			evts.forEach(function(e) {
-				e[0].removeEventListener("click", e[1]);
-			});
+				doc.removeEventListener("click", onClick);
 		});
 	},
 
