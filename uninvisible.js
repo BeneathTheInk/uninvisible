@@ -44,7 +44,7 @@ UnInVisible.defaults = {
 	document: document,
 	contains: false,
 	animationSpeed: 400,
-	trackSpeed: 0.5
+	trackSpeed: 0.08
 };
 
 _.extend(UnInVisible.prototype, {
@@ -264,7 +264,6 @@ _.extend(UnInVisible.prototype, {
 
 		setTimeout(function(){
 			Uninvisible._expand(options);
-			Uninvisible._trackMovement();
 		},10);
 
 
@@ -279,6 +278,12 @@ _.extend(UnInVisible.prototype, {
 
 			Uninvisible._removeAnimationCompleteListener(_onOpenComplete);
 			Uninvisible._turnOffTransitions();
+
+			if(Uninvisible.isDevice){
+				Uninvisible._initTrackingTouch();
+			} else {
+				Uninvisible._initTrackingMouse();
+			}
 
 			Uninvisible.emit('open:after');
 		}
@@ -337,7 +342,7 @@ _.extend(UnInVisible.prototype, {
 		var scale, scaledHeight, scaledWidth;
 
 		if(!Uninvisible.isDevice){
-			Uninvisible._setImagePositionCSS({
+			Uninvisible._setImagePosition({
 				left: (containerW - imgW) / 2,
 				top: (containerH - imgH) / 2,
 				width: imgW,
@@ -351,24 +356,18 @@ _.extend(UnInVisible.prototype, {
 			var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.options.contain);
 
 			if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.options.freeZoom){
-				console.log('freeZoom, 6');
 				Uninvisible.orientation = 6;
 			} else if(imgSizeContain){
 				Uninvisible.orientation = 1;
 				 if(imgW < containerW && imgH < containerH){ // SMALLER THAN WINDOW
-					 console.log('contain, smaller than window, 1');
 
 				 } else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-					 console.log('contained, horizontal, 1');
-
 					 scale = Uninvisible.dimensions.scale = (containerW / imgW);
 
 					 Uninvisible._transformImage({
 						 scale: scale
 					 });
 				} else { //..CONTAINED VERTICAL
-					console.log('contained, vertical, 1');
-
 					scale = Uninvisible.dimensions.scale = containerH / imgH;
 
 					Uninvisible._transformImage({
@@ -381,10 +380,8 @@ _.extend(UnInVisible.prototype, {
 				} else {
 					Uninvisible.orientation = 0; // ..SMALLER THAN WINDOW
 				}
-				console.log('small image: ', Uninvisible.orientation);
 		} else { // LARGE IMAGE..
 				if(imgW / imgH > containerW / containerH){
-					console.log('large, horizontal, 4');
 					Uninvisible.orientation = 4; //..HORIZONTAL
 
 					scale = Uninvisible.dimensions.scale = containerH / imgH;
@@ -393,7 +390,6 @@ _.extend(UnInVisible.prototype, {
 						scale: scale
 					});
 				} else {
-					console.log('large, vertical, 5');
 					Uninvisible.orientation = 5; //..VERTICAL
 
 					scale = Uninvisible.dimensions.scale = containerW / imgW;
@@ -403,8 +399,6 @@ _.extend(UnInVisible.prototype, {
 					});
 				}
 			}
-
-
 		} else { // DEVICE
 			scale = Uninvisible.dimensions.scale = 1;
 			Uninvisible.orientation = 6;
@@ -414,7 +408,7 @@ _.extend(UnInVisible.prototype, {
 				scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
 				Uninvisible.dimensions.initialWidth = containerW;
 
-				Uninvisible._setImagePositionCSS({
+				Uninvisible._setImagePosition({
 					left: 0,
 					top: (containerH - scaledHeight) / 2,
 					width: containerW,
@@ -424,7 +418,7 @@ _.extend(UnInVisible.prototype, {
 			 scaledWidth = Uninvisible.dimensions.initialWidth = (containerH / imgH) * imgW;
 			 Uninvisible.dimensions.initialHeight = containerH;
 
-			 Uninvisible._setImagePositionCSS({
+			 Uninvisible._setImagePosition({
  				left: (containerW - scaledWidth) / 2,
  				top: 0,
  				width: (containerH / imgH) * imgW,
@@ -443,7 +437,7 @@ _.extend(UnInVisible.prototype, {
 		if(p.origin) img.style.transformOrigin = p.origin;
 	},
 
-	_setImagePositionCSS: function(p){
+	_setImagePosition: function(p){
 		var img = this.imageElement;
 
 		if(p.top || p.top === 0) img.style.top = p.top + 'px';
@@ -471,7 +465,7 @@ _.extend(UnInVisible.prototype, {
 			};
 		}
 
-		Uninvisible._setImagePositionCSS({
+		Uninvisible._setImagePosition({
 			top: position.top,
 			left: position.left,
 			width: position.width,
@@ -543,54 +537,22 @@ _.extend(UnInVisible.prototype, {
 		this.touch.get('rotate').set({ enable: true });
 	},
 
-	_trackMovement: function(){
+	_initTrackingMouse: function(){
 		var Uninvisible = this;
-		var imageElement = Uninvisible.imageElement;
-
-		var orientation = Uninvisible.orientation;
 
 		var containerW = window.innerWidth,
 				containerH = window.innerHeight;
 
-		var imgW = Uninvisible.image.naturalWidth;
-		var imgH = Uninvisible.image.naturalHeight;
-
-		var scale = Uninvisible.dimensions.scale;
-		var minScale = imgW / imgH > containerW / containerH ? (containerW / imgW) * 0.8 : (containerH / imgH) * 0.8;
+		var imgW = Uninvisible.image.naturalWidth,
+				imgH = Uninvisible.image.naturalHeight;
 
 		var horizontalMargin = containerW - imgW,
 				verticalMargin = containerH - imgH;
-		var scaledMarginX,
-				scaledMarginY;
 
-				var xDestPercent = yDestPercent = 50,
-					xPercent = yPercent = 50,
-					x = xDest = containerW / 2,
-					y = yDest = containerH / 2,
-					startXTouch, startYTouch,
-					followMouse;
-				var onTouchStart, onTouchEnd, handleTouchMove,
-					isTouching = false,
-					isZooming = false,
-					zoomXStart, zoomYstart,
-					zoomXDif = zoomYDif = 0,
-					zoomX = zoomY = 0,
-					newScale;
-
-				var origXMargin = (containerW - imgW),
-						origYMargin = (containerH - imgH),
-						startLeft, startTop,
-						leftDest, topDest;
-
-				var location = imageElement.getBoundingClientRect();
-
-				var left = location.left;
-	      var top = location.top;
-
-				var currentImageWidth = Uninvisible.dimensions.initialWidth;
-				var currentImageHeight = Uninvisible.dimensions.initialHeight;
-
-
+		var xDestPercent = yDestPercent = 50,
+				xPercent = yPercent = 50,
+				followMouse,
+				expandByX, expandByY;
 
 		followMouse = _.throttle(function(e){
 			if(Uninvisible.orientation < 2) return;
@@ -599,53 +561,96 @@ _.extend(UnInVisible.prototype, {
 			yDestPercent = (e.clientY / containerH) * 100;
 		}, 1000/30);
 
-		onTouchStart = function(e){
-			// if(Uninvisible.orientation < 2) return;
+		var SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
+		function positionImage(){
+			switch(Uninvisible.orientation){
+				case 0:
+				case 1:
+					break;
+				// HORIZONTAL
+				case 2:
+				case 4:
+					positionX();
+					break;
+				// VERTICAL
+				case 3:
+				case 5:
+					positionY();
+					break;
+				// FREE SCROLL
+				case 6:
+					positionX();
+					positionY();
+					break;
+			}
+		}
 
-			isTouching = true;
+		function positionX(){
+			xPercent = xPercent + ((xDestPercent - xPercent) * SLIDE_SPEED);
+			if(xPercent < 0) xDestPercent = (xDestPercent * SLIDE_SPEED);
+			if(xPercent > 100) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
 
-			startXTouch = e.pageX;
-			startYTouch = e.pageY;
+			if(xPercent < 50){
+				expandByX = ((50 - xPercent) / 100) * 50;
+			} else {
+				expandByX = -((50 - (100 - xPercent)) / 100) * 50;
+			}
 
-			startLeft = left;
-			startTop = top;
+			Uninvisible._setImagePosition({
+				left: expandByX + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100))))
+			});
+		}
+
+		function positionY(){
+			yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
+			if(yPercent < 0) yDestPercent = (yDestPercent * SLIDE_SPEED);
+			if(yPercent > 100) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
+
+			if(yPercent < 50){
+				expandByY = ((50 - yPercent) / 100) * 50;
+			} else {
+				expandByY = -((50 - (100 - yPercent)) / 100) * 50;
+			}
+
+			Uninvisible._setImagePosition({
+				top: expandByY + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100))))
+			});
+		}
+
+		addEventListener('mousemove', followMouse);
+		loopDesktop();
+
+		var looper;
+		function loopDesktop(){
+			looper = raf(loopDesktop);
+			positionImage();
+		}
+
+		var xListener = function(){
+			Uninvisible.removeListener('close', xListener);
+			removeEventListener('mousemove', followMouse);
+			raf.cancel(looper);
 		};
 
-		handleTouchMove = _.throttle(function(e){
-			if(isZooming === true) return;
-			//
-			left = (e.pageX - startXTouch) + startLeft;
-			top = (e.pageY - startYTouch) + startTop;
-		}, 1000/30);
+		Uninvisible.on('close', xListener);
+	},
 
-		onTouchEnd = function(e){
-			isTouching = false;
-		};
+	_initTrackingTouch: function(){
+		var Uninvisible = this;
 
+		var containerW = window.innerWidth,
+				containerH = window.innerHeight;
 
-		// this.touch.on('rotate', function(e){
-		// 	console.log('rotate!!', e);
-		// });
+		var onTouchStart, onTouchEnd, handleTouchMove,
+			isTouching = false,
+			isZooming = false,
+			startXTouch, startYTouch;
 
-
-		var currentZoom,
-				startX, startY,
-				originX, originY,
-				scale,
-				deltaX, deltaY,
-				distance_to_origin_x, distance_to_origin_y;
-		var zoom = 1;
-		var panX = 0;
-		var panY = 0;
-
-		var previousDeltaX, previousDeltaY;
-		var previousOriginX = previousOriginY = 0;
-		var previousScale = 1;
 		var screenCenterX = containerW / 2;
 		var screenCenterY = containerH / 2;
 		var relCenterX, relCenterY;
 
-		var matrix = new Paper.Matrix();
+		var matrix = Uninvisible.matrix = new Paper.Matrix();
 		var panOrigin;
 
 		function onPinchStart(e){
@@ -655,15 +660,17 @@ _.extend(UnInVisible.prototype, {
 
 		function onPinchMove(e){
 			// applied to a clone of the matrix so the next move resets
-			applyToMatrix(matrix.clone(), e);
+			applyToMatrix(matrix.clone(), e.center.x, e.center.y, e.scale);
 		}
 
 		function onPinchEnd(e){
 			setTimeout(function(){ isZooming = false; }, 200);
 
 			// applied to the actual matrix so the next zoom applies on top
-			applyToMatrix(matrix, e);
+			applyToMatrix(matrix, e.center.x, e.center.y, e.scale);
 			panOrigin = null;
+
+			Uninvisible._checkLocation();
 		}
 
 		// converts a point on the screen to a point on the image
@@ -678,213 +685,91 @@ _.extend(UnInVisible.prototype, {
 		}
 
 		// transform a matrix according to an event
-		function applyToMatrix(matrix, e) {
+		function applyToMatrix(matrix, x, y, scale) {
 			// normalize the touch point relative to the image
-			var center = screenToImage(matrix, e.center.x, e.center.y);
+			var center = screenToImage(matrix, x, y);
 
 			// translate the image by the amount moved
-			matrix.translate(center.x - panOrigin.x, center.y - panOrigin.y);
+			if(panOrigin) matrix.translate(center.x - panOrigin.x, center.y - panOrigin.y);
 
 			// scale the image by the amount scaled
 			// this is relative to the origin point, not the current touch location
-			matrix.scale(e.scale, panOrigin);
+
+			if(scale) matrix.scale(scale, panOrigin);
 
 			// rasterize the matrix and apply it
 			var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
-			imageElement.style.transform = "matrix(" + t + ")";
+			// imageElement.style.transform = "matrix(" + t + ")";
+			Uninvisible._transform(t);
 		}
 
-		// var dif, diffs;
-		// function setScale(e){
-		// 	console.log(e);
-		// 	diffs = getZoomDif(e);
-		//
-		// 	var dif = Math.sqrt(Math.pow(diffs.x, 2), Math.pow(diffs.y, 2));
-		//
-		// 	scale = Math.max(scale + (dif * (scale / 100)), 0.9);
-		// }
-		//
-		// function getZoomDif(e){
-		// 	var p1 = e.pointers[0],
-		// 			p2 = e.pointers[1];
-		// 	var difs = {
-		// 		x: e.center.x - Math.sqrt(Math.pow(p1.screenX, 2), Math.pow(p2.screenX, 2)),
-		// 		y: e.center.y - Math.sqrt(Math.pow(p1.screenY, 2), Math.pow(p2.screenY, 2)),
-		// 	};
-		// 	// var difs = {
-		// 	// 	x: p1.screenX > p2.screenX ? e.center.x - p2.screenX : e.center.x - p1.screenX,
-		// 	// 	y: p1.screenY > p2.screenY ? e.center.y - p2.screenY : e.center.y - p1.screenY
-		// 	// };
-		//
-		// 	return difs;
-		// }
+		onTouchStart = function(e){
+			if(isZooming === true) return;
+			isTouching = true;
 
+			panOrigin = screenToImage(matrix, e.pageX, e.pageY);
 
-		function positionImageDevice(){
-			return;
-			switch(Uninvisible.orientation){
-				case 0:
-				case 1:
-					break;
-				// HORIZONTAL
-				case 2:
-				case 4:
+			// startXTouch = e.pageX;
+			// startYTouch = e.pageY;
 
-					imageElement.style.left = left + 'px';
-					break;
-				// VERTICAL
-				case 3:
-				case 5:
-					imageElement.style.top = top + 'px';
-					break;
-				// FREE SCROLL
-				case 6:
-					// scaledMarginX = containerW - (imgW * scale);
-					// scaledMarginY = containerH - (imgH * scale);
+			// startLeft = left;
+			// startTop = top;
+		};
 
-					// left = Math.min(Math.max(left, scaledMarginX - (imgW - (imgW * scale))), scaledMarginX + (imgW - (imgW * scale)));
-					// left = Math.max(left, (origXMargin - (origXMargin - (scaledMarginX))));
+		handleTouchMove = _.throttle(function(e){
+			if(isZooming === true) return;
 
-					imageElement.style.left = left + 'px';
-					imageElement.style.top = top + 'px';
-					break;
-			}
-		}
+			// applied to a clone of the matrix so the next move resets
+			applyToMatrix(matrix.clone(), e.pageX, e.pageY, null);
+
+			//
+			// left = (e.pageX - startXTouch) + startLeft;
+			// top = (e.pageY - startYTouch) + startTop;
+		}, 1000/30);
+
+		onTouchEnd = function(e){
+			if(isZooming === true) return;
+
+			// applied to the actual matrix so the next zoom applies on top
+			applyToMatrix(matrix, e.pageX, e.pageY, null);
+			panOrigin = null;
+
+			isTouching = false;
+		};
 
 
 
 
-		var SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
-
-		function positionImageDesktop(){
-			switch(Uninvisible.orientation){
-				case 0:
-				case 1:
-					break;
-				// HORIZONTAL
-				case 2:
-				case 4:
-					xPercent = xPercent + ((xDestPercent - xPercent) * SLIDE_SPEED);
-					if(xPercent < 0 && !isTouching) xDestPercent = (xDestPercent * SLIDE_SPEED);
-					if(xPercent > 100 && !isTouching) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
-
-					var expandBy;
-					if(xPercent < 50){
-						expandBy = -((50 - xPercent) / 1000) * horizontalMargin * 2;
-					} else {
-						expandBy = ((50 - (100 - xPercent)) / 1000) * horizontalMargin * 2;
-					}
-
-					Uninvisible._setImagePositionCSS({
-						left: expandBy + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100))))
-					});
-					break;
-				// VERTICAL
-				case 3:
-				case 5:
-					yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
-					if(yPercent < 0 && !isTouching) yDestPercent = (yDestPercent * SLIDE_SPEED);
-					if(yPercent > 100 && !isTouching) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
-
-					var expandBy;
-					if(yPercent < 50){
-						expandBy = -((50 - yPercent) / 1000) * verticalMargin * 2;
-					} else {
-						expandBy = ((50 - (100 - yPercent)) / 1000) * verticalMargin * 2;
-					}
-
-					Uninvisible._setImagePositionCSS({
-						top: expandBy + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100))))
-					});
-					break;
-				// FREE SCROLL
-				case 6:
-					xPercent = xPercent + ((xDestPercent - xPercent) * SLIDE_SPEED);
-					if(xPercent < 0 && !isTouching) xDestPercent = (xDestPercent * SLIDE_SPEED);
-					if(xPercent > 100 && !isTouching) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
-
-					var expandBy;
-					if(xPercent < 50){
-						expandBy = -((50 - xPercent) / 1000) * horizontalMargin * 2;
-					} else {
-						expandBy = ((50 - (100 - xPercent)) / 1000) * horizontalMargin * 2;
-					}
-
-					Uninvisible._setImagePositionCSS({
-						left: expandBy + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100))))
-					});
-
-					yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
-					if(yPercent < 0 && !isTouching) yDestPercent = (yDestPercent * SLIDE_SPEED);
-					if(yPercent > 100 && !isTouching) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
-
-					var expandBy;
-					if(yPercent < 50){
-						expandBy = -((50 - yPercent) / 1000) * verticalMargin * 2;
-					} else {
-						expandBy = ((50 - (100 - yPercent)) / 1000) * verticalMargin * 2;
-					}
-
-					Uninvisible._setImagePositionCSS({
-						top: expandBy + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100))))
-					});
-					break;
-			}
-		}
-
-
-
-
-		var looper;
-
-		function loopDesktop(){
-			looper = raf(loopDesktop);
-			positionImageDesktop();
-		}
-
-		function loopDevice(){
-			looper = raf(loopDevice);
-			positionImageDevice();
-		}
-
-		if(Uninvisible.isDevice){
-			loopDevice();
-		} else {
-			loopDesktop();
-		}
-
-
-		if(Uninvisible.isDevice){ // DEVICE
-			this.touch.on('pinchstart', onPinchStart);
-			this.touch.on('pinchmove', onPinchMove);
-			this.touch.on('pinchend', onPinchEnd);
-			imageElement.addEventListener("touchstart", onTouchStart);
-			imageElement.addEventListener("touchend", onTouchEnd);
-			imageElement.addEventListener("touchmove", handleTouchMove);
-
-		} else { // DESKTOP
-			addEventListener('mousemove', followMouse);
-		}
-
-
+		this.touch.on('pinchstart', onPinchStart);
+		this.touch.on('pinchmove', onPinchMove);
+		this.touch.on('pinchend', onPinchEnd);
+		this.imageElement.addEventListener("touchstart", onTouchStart);
+		this.imageElement.addEventListener("touchend", onTouchEnd);
+		this.imageElement.addEventListener("touchmove", handleTouchMove);
 
 		var xListener = function(){
-			raf.cancel(looper);
 			Uninvisible.removeListener('close', xListener);
-
-			if(Uninvisible.isDevice){
-				imageElement.removeEventListener("touchmove", handleTouchMove);
-				Uninvisible.touch.off('pinchstart', onPinchStart);
-				Uninvisible.touch.off('pinchmove', onPinchMove);
-				Uninvisible.touch.off('pinchend', onPinchEnd);
-
-				delete neo;
-			} else {
-				removeEventListener('mousemove', followMouse);
-			}
+			Uninvisible.imageElement.removeEventListener("touchmove", handleTouchMove);
+			Uninvisible.touch.off('pinchstart', onPinchStart);
+			Uninvisible.touch.off('pinchmove', onPinchMove);
+			Uninvisible.touch.off('pinchend', onPinchEnd);
 		};
 
 		Uninvisible.on('close', xListener);
+	},
+
+	_transform: function(t){
+		if(typeof t === 'array'){
+			t = t.join(",");
+		}
+
+		this.imageElement.style.transform = "matrix(" + t + ")";
+	},
+
+	_checkLocation: function(){
+		var matrix = this.matrix;
+
+		console.log(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty);
 	},
 
 	destroy: function(){
