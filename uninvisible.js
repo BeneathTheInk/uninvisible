@@ -21,6 +21,8 @@ function UnInVisible(options) {
 		initialHeight: null
 	};
 
+	this.matrix = new Paper.Matrix();
+
 	this.isAnimating = false;
 	this.isOpen = false;
 	this.orientation = null;
@@ -63,7 +65,10 @@ _.extend(UnInVisible.prototype, {
 
 		function onClick(e){
 			var target = closest(e.target, '[data-uninvisible]', true);
-			if(target) self.open(target);
+			if(target){
+				e.preventDefault();
+				self.open(target);
+			}
 		};
 
 		doc.addEventListener("click", onClick);
@@ -105,7 +110,7 @@ _.extend(UnInVisible.prototype, {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
-	open: function(img, options, cb){
+	open: function(img, options){
 		var Uninvisible = this;
 
 		if(Uninvisible.isAnimating || Uninvisible.isOpen) return;
@@ -114,13 +119,7 @@ _.extend(UnInVisible.prototype, {
 			if(closest(img, '[data-uninvisible-nozoom]', true)) return;
 		}
 
-		if(options){
-			if(typeof options === 'function' && cb == null){
-				cb = options;
-				options = {};
-			}
-		}
-		options = options || {};
+		options = Uninvisible.currentImageOptions = options || {};
 
 		Uninvisible._setupImage(img, options, function(){
 			Uninvisible.setCaption(options);
@@ -147,7 +146,6 @@ _.extend(UnInVisible.prototype, {
 				cb();
 			});
 		} else if(img.nodeType === 1 && img.tagName !== 'IMG'){
-			Uninvisible.image = img;
 			dataUrl = options.url || img.dataset.uninvisibleUrl;
 
 			if(dataUrl == null && img.style.backgroundImage != null){
@@ -161,7 +159,6 @@ _.extend(UnInVisible.prototype, {
 				cb();
 			});
 		} else if(img.nodeType === 1 && img.tagName === 'IMG') {
-			Uninvisible.image = img;
 
 			if(options.url || img.dataset.uninvisibleUrl){
 				var newImg = Uninvisible.image = new Image();
@@ -172,6 +169,7 @@ _.extend(UnInVisible.prototype, {
 				});
 			} else {
 				Uninvisible.imageElement.src = img.src;
+				Uninvisible.image = img;
 				cb();
 			}
 		} else {
@@ -192,23 +190,18 @@ _.extend(UnInVisible.prototype, {
 
 		var xListener = function(){
 			this.touch.off('tap', closeImg);
+			Uninvisible.removeListener('close:start', xListener);
 		};
 
 		Uninvisible.on('close:start', xListener);
 	},
 
-	close: function(options, cb){
+	close: function(options){
 		if(this.isAnimating) return;
 
-		// if(options){
-		// 	if(typeof options === 'function' && cb == null){
-		// 		cb = options;
-		// 		options = {};
-		// 	}
-		// }
-		// options = options || {};
+		options = options || {};
 
-		this._close();
+		this._close(options);
 	},
 
 	closeViewerImmediately: function(){
@@ -247,13 +240,10 @@ _.extend(UnInVisible.prototype, {
 	_open: function(options){
 		var Uninvisible = this;
 
-		UnInVisible.isAnimating = true;
+		Uninvisible.isAnimating = true;
 		Uninvisible.emit('open:start');
 
-		Uninvisible._transformImage({
-			origin: '50% 50%'
-		});
-
+		Uninvisible._resetMatrix();
 		Uninvisible._setToImgLocation();
 		Uninvisible.container.style.display = 'block';
 
@@ -265,11 +255,6 @@ _.extend(UnInVisible.prototype, {
 		setTimeout(function(){
 			Uninvisible._expand(options);
 		},10);
-
-
-		if(Uninvisible.sourceElement){
-			Uninvisible.sourceElement.classList.add('uninvisible-open');
-		}
 
 		function _onOpenComplete(){
 			Uninvisible.isAnimating = false;
@@ -286,10 +271,11 @@ _.extend(UnInVisible.prototype, {
 			}
 
 			Uninvisible.emit('open');
+			if(typeof options.onOpen === 'function') options.onOpen();
 		}
 	},
 
-	_close: function(){
+	_close: function(options){
 		var Uninvisible = this;
 		Uninvisible._turnOnTransitions();
 		Uninvisible.isAnimating = true;
@@ -307,10 +293,6 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible.isAnimating = false;
 			Uninvisible.isOpen = false;
 
-			if(Uninvisible.sourceElement){
-				Uninvisible.sourceElement.classList.remove('uninvisible-open');
-			}
-
 			document.body.style.overflow = '';
 			document.body.style.cursor = 'auto';
 
@@ -322,6 +304,10 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible._removeAnimationCompleteListener(_onCloseComplete);
 
 			Uninvisible._removeView();
+
+			if(typeof options.onClose === 'function') options.onClose();
+			if(typeof Uninvisible.currentImageOptions.onClose === 'function') Uninvisible.currentImageOptions.onClose();
+			Uninvisible.currentImageOptions = {};
 
 			Uninvisible.emit('close');
 		}
@@ -400,7 +386,6 @@ _.extend(UnInVisible.prototype, {
 		} else { // DEVICE
 			scale = Uninvisible.dimensions.scale = 1;
 			Uninvisible.orientation = 6;
-			imageElement.style.transform = 'scale(1)';
 
 			if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
 				scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
@@ -644,7 +629,8 @@ _.extend(UnInVisible.prototype, {
 
 		var relCenterX, relCenterY;
 
-		var matrix = Uninvisible.matrix = new Paper.Matrix();
+		var matrix = this.matrix;
+
 		var panOrigin;
 
 		function onPinchStart(e){
@@ -761,16 +747,7 @@ _.extend(UnInVisible.prototype, {
 	_checkLocation: function(){
 		var matrix = this.matrix;
 
-		// snap scale to 1 if is smaller
-		if(matrix.a < 1){
-			matrix.a = 1;
-			matrix.b = 0;
-			matrix.c = 0;
-			matrix.d = 1;
-			matrix.tx = 0;
-			matrix.ty = 0;
-		}
-
+		if(matrix.a < 1) this._resetMatrix();
 		var containerW = window.innerWidth,
 				containerH = window.innerHeight;
 
@@ -788,6 +765,19 @@ _.extend(UnInVisible.prototype, {
 
 		if((fromTop < 0 && fromBottom < 0 && scaledHeight >= containerH) || (fromBottom > 0 && fromTop > 0 && scaledHeight < containerH)) matrix.ty += fromTop;
 		if((fromTop < 0 && fromBottom < 0 && scaledHeight < containerH) || (fromBottom > 0 && fromTop > 0 && scaledHeight >= containerH)) matrix.ty += fromBottom;
+
+		this._transform([matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty]);
+	},
+
+	_resetMatrix: function(){
+		var matrix = this.matrix;
+
+		matrix.a = 1;
+		matrix.b = 0;
+		matrix.c = 0;
+		matrix.d = 1;
+		matrix.tx = 0;
+		matrix.ty = 0;
 
 		this._transform([matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty]);
 	},
