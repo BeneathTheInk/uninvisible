@@ -6,33 +6,32 @@ UnInVisible creates a slick and beautiful image viewing experience. This is done
 
 ## Quick Start
 
-UnInVisible is really easy to use. First add the CSS to your stylesheet and then add the cursor icons to your assets. The Javascript looks like this:
+UnInVisible is really easy to use. Just require UnInVisible or add the script to your document and add the CSS to your stylesheet. The Javascript looks like this:
 
 ```javascript
 var UnInVisible = require('uninvisible');
 
-document.addEventListener("DOMContentLoaded", function() {
-	uninvisible = new UnInVisible();
-});
+<img id="my-img" src="path/to/myimage.img" />
 
-<img class="my-img" />
-
-var img = document.querySelector('.my-img');
+var img = document.getElementById('my-img');
 uninvisible.open(img);
 
 ```
 
+You can use Uninvisible without adding any custom Javascript by simply adding `data-uninvisible` to the element you would like to open.
+
+```javascript
+<img data-uninvisible data-uninvisible-url="path/to/imageToOpen.img" src="path/to/image.img" />
+```
+
+If the element is not an image, or if you'd like to open up a different image than the original image, you can add `data-uninvisible-url` and set it to the new image to open.
+
+```
+<a href="#" data-uninvisible data-uninvisible-url="path/to/image" data-uninvisible-title="This image was opened from an anchor tag!">Click here to see it!</a>
+```
+
+
 ## Methods
-
-### UnInVisible(options)
-
-Create a new instance of Uninvisible.
-
-options:
-  - clickEvent - *Set a custom event for closing the view. Defaults to `'click'`*
-	- target - *Setup click listener to open elements with a target class. defaults to 'uninvisible. setting to false will prevent the setup of class click listener, allowing you tighter control of image opening'*
-	- animationSpeed - *open/close speed, defaults to 400*
-	- trackSpeed - *Mouse/touch floaty move speed. a number between 0 and 1, defaults to 0.5*
 
 ### UnInVisible.open(img, options)
 
@@ -45,6 +44,8 @@ options:
   - title - *caption title*
   - text - *caption text*
 	- contain - *the entire image will be contained in the view, no zoom. Defaults to `false`. This can also be set directly on the image element with `data-contain`*
+	- onOpen - *open callback*
+	- onClose - *close callback*
 
 Captions can also be added directly in your HTML as `data-uninvisible-title` and `data-uninvisible-text`.
 
@@ -64,7 +65,16 @@ Images will be not be expanded further than their natural width and height. If y
 	});
 ```
 
-### UnInVisible.close()
+### UnInVisible.close(options)
+
+options:
+	- onClose - *close callback*
+
+### UnInVisible.setOptions(options)
+
+options:
+	- animationSpeed - *open/close speed, defaults to 400*
+	- trackSpeed - *Mouse/touch floaty move speed. a number between 0 and 1, defaults to 0.085*
 
 ### uninvisible.setCaption()
 
@@ -78,9 +88,20 @@ uninvisible.setCaption({
 
 ### destroy()
 
+## Events
+
+- open:start - *Start of open animation*
+- open - *Open animation complete*
+- close:start - *Start of close animation*
+- close - *Close complete*
+
 ## Cursor icons
 
-When viewing an image, the cursor turns into an image mimicking a target. If you want a matching cursor icon when hovering over images, add the class 'uninvisible-parent' to the container element that the images live within. This can further be overridden by adding `data-nozoom` to the image element if there are specific images that are not to be opened.
+When viewing an image, the cursor turns into an image mimicking a target. If you want a matching cursor icon when hovering over source elements, add the class 'uninvisible' to the element.
+
+## Nozoom
+
+You can add `data-uninvisible-nozoom` onto an element to prevent the opening of that element as well as any children nodes.
 
 ## Browser Support
 
