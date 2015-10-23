@@ -84,8 +84,8 @@ _.extend(UnInVisible.prototype, {
 		var container = this.container = document.createElement('div');
 		container.classList.add('uninvisible-container');
 
-		var imageElement = this.imageElement = document.createElement('img');
-		imageElement.classList.add('uninvisible-image');
+		var imageDiv = this.imageDiv = this.imageElement = document.createElement('div');	
+    	imageDiv.classList.add('uninvisible-image');
 
 		var captionContainer = this.captionContainer = document.createElement( 'figcaption' );
 		captionContainer.classList.add('caption-container');
@@ -98,7 +98,7 @@ _.extend(UnInVisible.prototype, {
 		captionText.classList.add('caption-text');
 		captionContainer.appendChild(captionText);
 
-		container.appendChild(imageElement);
+		container.appendChild(imageDiv);
 		container.appendChild(captionContainer);
 	},
 
@@ -132,6 +132,8 @@ _.extend(UnInVisible.prototype, {
 	_setupImage: function(img, options, cb){
 		var Uninvisible = this;
 		var dataUrl;
+		mapPin.status=false;
+		Uninvisible.imageDiv.style.backgroundSize="100%";
 
 		Uninvisible.sourceElement = img;
 
@@ -142,10 +144,13 @@ _.extend(UnInVisible.prototype, {
 			var newImg = Uninvisible.image = new Image();
 			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = img;
 
+			Uninvisible.imageDiv.style.backgroundImage="url("+newImg.src+")";
+
 			newImg.addEventListener('load', function(){
 				cb();
 			});
 		} else if(img.nodeType === 1 && img.tagName !== 'IMG'){
+			Uninvisible.image = img;
 			dataUrl = options.url || img.dataset.uninvisibleUrl;
 
 			if(dataUrl == null && img.style.backgroundImage != null){
@@ -154,6 +159,15 @@ _.extend(UnInVisible.prototype, {
 
 			var newImg = Uninvisible.image = new Image();
 			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = dataUrl;
+
+			if(img.dataset.uninvisiblePin!==undefined){
+				mapPin.status=true;
+				Uninvisible.imageDiv.style.backgroundImage="url('../Maps/images/pin.PNG'),url('"+dataUrl+"')";
+				mapPin.x=pins[img.dataset.uninvisiblePin].x;
+				mapPin.y=pins[img.dataset.uninvisiblePin].y;
+				Uninvisible.imageDiv.style.backgroundPosition=mapPin.x+"px "+mapPin.y+"px,left top";
+				Uninvisible.imageDiv.style.backgroundSize="5%, 100%";
+			}
 
 			newImg.addEventListener('load', function(){
 				cb();
@@ -164,10 +178,13 @@ _.extend(UnInVisible.prototype, {
 				var newImg = Uninvisible.image = new Image();
 				newImg.src = Uninvisible.imageElement.src = Uninvisible.url = options.url || img.dataset.uninvisibleUrl;
 
+				Uninvisible.imageDiv.style.backgroundImage="url("+newImg.src+")";
+
 				newImg.addEventListener('load', function(){
 					cb();
 				});
 			} else {
+				Uninvisible.imageDiv.style.backgroundImage="url("+img.src+")";
 				Uninvisible.imageElement.src = img.src;
 				Uninvisible.image = img;
 				cb();
@@ -458,6 +475,12 @@ _.extend(UnInVisible.prototype, {
 		if(p.left || p.left === 0) img.style.left = p.left + 'px';
 		if(p.width) img.style.width = p.width + 'px';
 		if(p.height) img.style.height = p.height + 'px';
+
+		if(mapPin.status){
+			mapPin.sX=(mapPin.x-100)*(p.width/4300);
+		    mapPin.sY=(mapPin.y-70)*(p.height/2950);
+		    this.imageDiv.style.backgroundPosition=mapPin.sX+"px "+mapPin.sY+"px,left top";
+		}
 	},
 
 	_setToImgLocation: function(){
