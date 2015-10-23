@@ -162,7 +162,7 @@ _.extend(UnInVisible.prototype, {
 
 			if(img.dataset.uninvisiblePin!==undefined){
 				mapPin.status=true;
-				Uninvisible.imageDiv.style.backgroundImage="url('../Maps/images/pin.PNG'),url('"+dataUrl+"')";
+				Uninvisible.imageDiv.style.backgroundImage="url('Maps/pin.PNG'),url('"+dataUrl+"')";
 				mapPin.x=pins[img.dataset.uninvisiblePin].x;
 				mapPin.y=pins[img.dataset.uninvisiblePin].y;
 				Uninvisible.imageDiv.style.backgroundPosition=mapPin.x+"px "+mapPin.y+"px,left top";
