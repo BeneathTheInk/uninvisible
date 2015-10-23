@@ -45,7 +45,7 @@ util.inherits(UnInVisible, EventEmitter);
 
 UnInVisible.defaults = {
 	document: document,
-	contains: false,
+	zoom: 'default',
 	animationSpeed: 400,
 	trackSpeed: 0.085
 };
@@ -254,6 +254,7 @@ _.extend(UnInVisible.prototype, {
 
 		setTimeout(function(){
 			Uninvisible._expand(options);
+			Uninvisible.container.style.opacity = 1;
 		},10);
 
 		function _onOpenComplete(){
@@ -264,7 +265,7 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible._removeAnimationCompleteListener(_onOpenComplete);
 			Uninvisible._turnOffTransitions();
 
-			if(Uninvisible.isDevice){
+			if(Uninvisible.isDevice && !(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain")){
 				Uninvisible._initTrackingTouch();
 			} else {
 				Uninvisible._initTrackingMouse();
@@ -316,6 +317,7 @@ _.extend(UnInVisible.prototype, {
 	_expand: function(options){
 		var Uninvisible = this;
 		var imageElement = Uninvisible.imageElement;
+		var matrix = this.matrix;
 
 		var containerW = window.innerWidth,
 			containerH = window.innerHeight;
@@ -326,98 +328,127 @@ _.extend(UnInVisible.prototype, {
 		var scale, scaledHeight, scaledWidth;
 
 		if(!Uninvisible.isDevice){
-			Uninvisible._setImagePosition({
-				left: (containerW - imgW) / 2,
-				top: (containerH - imgH) / 2,
-				width: imgW,
-				height: imgH
-			});
-
-			Uninvisible._transformImage({
-				scale: 1
-			});
-
-			var imgSizeContain = options.contain || (Uninvisible.sourceElement ? Uninvisible.sourceElement.dataset.uninvisibleContain : Uninvisible.options.contain);
-
-			if(options.freeZoom || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleFreeZoom) || Uninvisible.options.freeZoom){
-				Uninvisible.orientation = 6;
-			} else if(imgSizeContain){
+			if(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain"){
 				Uninvisible.orientation = 1;
-				 if(imgW < containerW && imgH < containerH){ // SMALLER THAN WINDOW
-
-				 } else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-					 scale = Uninvisible.dimensions.scale = (containerW / imgW);
-
-					 Uninvisible._transformImage({
-						 scale: scale
-					 });
-				} else { //..CONTAINED VERTICAL
-					scale = Uninvisible.dimensions.scale = containerH / imgH;
-
-					Uninvisible._transformImage({
-						scale: scale
-					});
-				}
-			} else if(imgW < containerW || imgH < containerH){ // SMALL IMAGE..
-				if(imgW > containerW || imgH > containerH){
-					Uninvisible.orientation = imgW > containerW ? 2 : 3; //..LARGER HORIZONTALLY OR VERTICALLY
+				if (imgW < containerW && imgH < containerH){
+					if(imgW / imgH >= containerW / containerH){
+						setToNaturalWidth(true);
+					} else {
+						setToNaturalHeight(true);
+					}
 				} else {
-					Uninvisible.orientation = 0; // ..SMALLER THAN WINDOW
+					if(imgW / imgH >= containerW / containerH){
+						setToContainHorizontal(false);
+					} else {
+						setToContainVertical(false);
+					}
 				}
-		} else { // LARGE IMAGE..
-				if(imgW / imgH > containerW / containerH){
-					Uninvisible.orientation = 4; //..HORIZONTAL
-
-					scale = Uninvisible.dimensions.scale = containerH / imgH;
-
-					Uninvisible._transformImage({
-						scale: scale
-					});
+			} else if (imgW < containerW || imgH < containerH){
+				if(imgW / imgH >= containerW / containerH){
+					Uninvisible.orientation = imgW > containerW ? 2 : 0; //..LARGER HORIZONTALLY or smaller than window
+					setToNaturalWidth(true);
 				} else {
-					Uninvisible.orientation = 5; //..VERTICAL
-
-					scale = Uninvisible.dimensions.scale = containerW / imgW;
-
-					Uninvisible._transformImage({
-						scale: scale
-					});
+					Uninvisible.orientation = imgH > containerH ? 3 : 0; //..LARGER VERTICALLY or smaller than window
+					setToNaturalHeight(true);
 				}
-			}
+			} else if (options.zoom === "free" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "free") || Uninvisible.options.zoom === "free"){
+				Uninvisible.orientation = 6;
+				if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
+					setToNaturalWidth(true);
+			 } else { //..CONTAINED VERTICAL
+				 setToNaturalHeight(true);
+			 }
+			} else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
+				Uninvisible.orientation = 4;
+				setToContainHorizontal(true);
+		 } else { //..CONTAINED VERTICAL
+			 Uninvisible.orientation = 5;
+			 setToContainVertical(true);
+		 }
 		} else { // DEVICE
 			scale = Uninvisible.dimensions.scale = 1;
-			Uninvisible.orientation = 6;
+			if(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain"){
+				Uninvisible.orientation = 1;
+			} else {
+				Uninvisible.orientation = 6;
+			}
 
 			if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-				scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
-				Uninvisible.dimensions.initialWidth = containerW;
-
-				Uninvisible._setImagePosition({
-					left: 0,
-					top: (containerH - scaledHeight) / 2,
-					width: containerW,
-					height: scaledHeight
-				});
+				setToContainHorizontal(false);
 		 } else { //..CONTAINED VERTICAL
-			 scaledWidth = Uninvisible.dimensions.initialWidth = (containerH / imgH) * imgW;
-			 Uninvisible.dimensions.initialHeight = containerH;
-
-			 Uninvisible._setImagePosition({
- 				left: (containerW - scaledWidth) / 2,
- 				top: 0,
- 				width: (containerH / imgH) * imgW,
- 				height: containerH
- 			});
+			 setToContainVertical(false);
 		 }
 		}
 
-		Uninvisible.container.style.opacity = 1;
-	},
+		function setToNaturalWidth(transform){
+			scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
+			Uninvisible.dimensions.initialWidth = containerW;
 
-	_transformImage: function(p){
-		var img = this.imageElement;
+			Uninvisible._setImagePosition({
+				left: 0,
+				top: (containerH - scaledHeight) / 2,
+				width: containerW,
+				height: scaledHeight
+			});
+			if(transform){
+				scale = Uninvisible.dimensions.scale = imgW / containerW;
+				matrix.scale(scale);
+				Uninvisible._transform([ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ]);
+			}
+		}
 
-		if(p.scale) img.style.transform = 'scale(' + p.scale + ')';
-		if(p.origin) img.style.transformOrigin = p.origin;
+		function setToNaturalHeight(transform){
+			Uninvisible.dimensions.initialHeight = containerH;
+			scaledWidth = Uninvisible.dimensions.initialWidth = (containerH / imgH) * imgW;
+
+			Uninvisible._setImagePosition({
+				left: (containerW - scaledWidth) / 2,
+				top: 0,
+				width: scaledWidth,
+				height: containerH
+			});
+			if(transform){
+				scale = Uninvisible.dimensions.scale = imgH / containerH;
+				matrix.scale(scale);
+				Uninvisible._transform([ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ]);
+			}
+		}
+
+		function setToContainHorizontal(transform){
+			Uninvisible.dimensions.initialWidth = containerW;
+			scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
+
+			Uninvisible._setImagePosition({
+				left: 0,
+				top: (containerH - scaledHeight) / 2,
+				width: containerW,
+				height: scaledHeight
+			});
+
+			if(transform){
+				scale = Uninvisible.dimensions.scale = containerH / scaledHeight;
+				matrix.scale(scale);
+				Uninvisible._transform([ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ]);
+			}
+		}
+
+		function setToContainVertical(transform){
+			scaledWidth = Uninvisible.dimensions.initialWidth = (containerH / imgH) * imgW;
+			Uninvisible.dimensions.initialHeight = containerH;
+
+			Uninvisible._setImagePosition({
+			 left: (containerW - scaledWidth) / 2,
+			 top: 0,
+			 width: scaledWidth,
+			 height: containerH
+		 });
+
+		 if(transform){
+		 	scale = Uninvisible.dimensions.scale = containerW / scaledWidth;
+ 			matrix.scale(scale);
+ 			Uninvisible._transform([ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ]);
+		 }
+		}
 	},
 
 	_setImagePosition: function(p){
@@ -524,25 +555,32 @@ _.extend(UnInVisible.prototype, {
 	_initTrackingMouse: function(){
 		var Uninvisible = this;
 
-		var containerW = window.innerWidth,
-				containerH = window.innerHeight;
+		var matrix = this.matrix;
+		var clone = matrix.clone();
+		var origTx = clone.tx;
+		var origTy = clone.ty;
 
-		var imgW = Uninvisible.image.naturalWidth,
-				imgH = Uninvisible.image.naturalHeight;
+		var imgW = Uninvisible.dimensions.initialWidth,
+				imgH = Uninvisible.dimensions.initialHeight;
 
-		var horizontalMargin = containerW - imgW,
-				verticalMargin = containerH - imgH;
+		var scaledHeight, scaledWidth;
 
-		var xDestPercent = yDestPercent = 50,
-				xPercent = yPercent = 50,
+		var xDestPercent = 50, yDestPercent = 50,
+				xPercent = 50, yPercent = 50,
 				followMouse,
 				expandByX, expandByY;
+
+		var currTx = 0,
+				currTy = 0;
+		var newTx = currTx,
+				newTy = currTy;
+		var x = 0, y = 0;
 
 		followMouse = _.throttle(function(e){
 			if(Uninvisible.orientation < 2) return;
 
-			xDestPercent = (e.clientX / containerW) * 100;
-			yDestPercent = (e.clientY / containerH) * 100;
+			xDestPercent = (e.clientX / window.innerWidth) * 100;
+			yDestPercent = (e.clientY / window.innerHeight) * 100;
 		}, 1000/30);
 
 		var SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
@@ -566,7 +604,10 @@ _.extend(UnInVisible.prototype, {
 					positionX();
 					positionY();
 					break;
-			}
+				}
+
+				matrix.translate(x, y);
+				Uninvisible._transform([ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ]);
 		}
 
 		function positionX(){
@@ -575,14 +616,19 @@ _.extend(UnInVisible.prototype, {
 			if(xPercent > 100) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
 
 			if(xPercent < 50){
-				expandByX = ((50 - xPercent) / 100) * 50;
+				expandByX = (50 - xPercent) / 100 * window.innerWidth / 2;
 			} else {
-				expandByX = -((50 - (100 - xPercent)) / 100) * 50;
+				expandByX = -(50 - (100 - xPercent)) / 100 * window.innerWidth / 2;
 			}
 
-			Uninvisible._setImagePosition({
-				left: expandByX + (horizontalMargin - (horizontalMargin - (horizontalMargin * (xPercent / 100))))
-			});
+			scaledWidth = imgW * matrix.a;
+
+			newTx = (window.innerWidth / 2) - (((scaledWidth + expandByX) / 2) - ((scaledWidth - window.innerWidth) * (xPercent / 100)));
+			newTx /= matrix.a;
+
+			x = currTx - newTx;
+
+			currTx = newTx;
 		}
 
 		function positionY(){
@@ -591,14 +637,18 @@ _.extend(UnInVisible.prototype, {
 			if(yPercent > 100) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
 
 			if(yPercent < 50){
-				expandByY = ((50 - yPercent) / 100) * 50;
+				expandByY = (50 - yPercent) / 100 * window.innerHeight / 2;
 			} else {
-				expandByY = -((50 - (100 - yPercent)) / 100) * 50;
+				expandByY = -(50 - (100 - yPercent)) / 100 * window.innerHeight / 2;
 			}
 
-			Uninvisible._setImagePosition({
-				top: expandByY + (verticalMargin - (verticalMargin - (verticalMargin * (yPercent / 100))))
-			});
+			scaledHeight = imgH * matrix.a;
+			newTy = (window.innerHeight / 2) - (((scaledHeight + expandByY) / 2) - ((scaledHeight - window.innerHeight) * (yPercent / 100)));
+			newTy /= matrix.a;
+
+			y = currTy - newTy;
+
+			currTy = newTy;
 		}
 
 		addEventListener('mousemove', followMouse);
@@ -678,9 +728,6 @@ _.extend(UnInVisible.prototype, {
 
 			Uninvisible._checkLocation();
 		};
-
-
-
 
 		this.touch.on('pinchstart', onPinchStart);
 		this.touch.on('pinchmove', onPinchMove);
@@ -769,15 +816,16 @@ _.extend(UnInVisible.prototype, {
 		this._transform([matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty]);
 	},
 
-	_resetMatrix: function(){
+	_resetMatrix: function(m){
 		var matrix = this.matrix;
+		m = m || [];
 
-		matrix.a = 1;
-		matrix.b = 0;
-		matrix.c = 0;
-		matrix.d = 1;
-		matrix.tx = 0;
-		matrix.ty = 0;
+		matrix.a = m[0] || 1;
+		matrix.b = m[1] || 0;
+		matrix.c = m[2] || 0;
+		matrix.d = m[3] || 1;
+		matrix.tx = m[4] || 0;
+		matrix.ty = m[5] || 0;
 
 		this._transform([matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty]);
 	},

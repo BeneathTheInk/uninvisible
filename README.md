@@ -43,11 +43,13 @@ options:
 	- url - *url of image to view. Allows for a different image to be opened (i.e. thumbnails -> larger image), or allows opening from non-image elements.*
   - title - *caption title*
   - text - *caption text*
-	- contain - *the entire image will be contained in the view, no zoom. Defaults to `false`. This can also be set directly on the image element with `data-contain`*
 	- onOpen - *open callback*
 	- onClose - *close callback*
+	- zoom - *'free', 'contain', or 'default'. On desktop, 'free' will set the image to its natural width and height, and will scroll on the x axis if the image is wider than the window, and scroll on the y axis if the image is taller than the window. 'contain' will prevent scrolling and set the image to contain. 'default' behaviour is to scroll along the broadest axis, with the image contained on the smaller axis.*
 
-Captions can also be added directly in your HTML as `data-uninvisible-title` and `data-uninvisible-text`.
+Options can also be added directly in your HTML as data attributes.
+
+`<img src="/path/to/thumbnail.img" data-uninvisible data-uninvisible-url="path/to/image.img" data-uninvisible-zoom="free" data-uninvisible-title="This is an image." />`
 
 Images will be not be expanded further than their natural width and height. If you want a deeper zoom, you'll need to increase the size of your original image.
 
