@@ -34,6 +34,19 @@ function UnInVisible(options) {
 		// 5 = fullscreen vertical
 		// 6 = fullscreen free scroll
 
+	this.mapPin = window.mapPin || {
+		status: false,
+		sX: null,
+		sY: null,
+		x: null,
+		y: null
+	};
+
+	this.pins = window.pins || {
+		x: null,
+		y: null
+	};
+
 	domready(function() {
 		this._createView();
 		this._addTouch();
@@ -69,7 +82,7 @@ _.extend(UnInVisible.prototype, {
 				e.preventDefault();
 				self.open(target);
 			}
-		};
+		}
 
 		doc.addEventListener("click", onClick);
 
@@ -84,7 +97,7 @@ _.extend(UnInVisible.prototype, {
 		var container = this.container = document.createElement('div');
 		container.classList.add('uninvisible-container');
 
-		var imageDiv = this.imageDiv = this.imageElement = document.createElement('div');	
+		var imageDiv = this.imageDiv = this.imageElement = document.createElement('div');
     	imageDiv.classList.add('uninvisible-image');
 
 		var captionContainer = this.captionContainer = document.createElement( 'figcaption' );
@@ -97,6 +110,9 @@ _.extend(UnInVisible.prototype, {
 		var captionText = this.captionText = this.isDevice === false ? document.createElement( 'div' ) : document.createElement('h4');
 		captionText.classList.add('caption-text');
 		captionContainer.appendChild(captionText);
+
+		var loadingSpinner = this.loadingSpinner = document.createElement('img');
+		loadingSpinner.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC70lEQVRYR71XzXnaQBCdQdxDOoAKYlcQGYk7riB2BcEVGFdgqCC4guAzu0SuIKQCSAWGs1aafKNvh28RCCQLsjdp/968mXkzi/CBEYahj4hERD5vJ6J1o9FYxHH8N4qiVZUjsezibrd7h4hfAaCPiK2ifUS0QsSpMWZcBsxJAEEQ9AHgGRHbZcHKOiKaJEnydAxIIQDf91vNZvMnAGQ0O2MDAAsiWiDi2v73iaiFiF8OgSSigdZ6fGjuIADf99v28ivHmhdEnCiloiIm7L47ABgAwCd3nWXjIYoiAZ1N7wFgyz3PW4qfiehPkiT9Mv6UC+0ZQ0T8ngehtb53/+0BCIKAqc2oJKKx1pqt+dDgwG00GiOXjfyZOwCCIBgJ6rqXC+Jer3dFRL9zFtyIK7cArP+W1vIXrTX78iwjDENm8dmJp5XWurMTA0EQTBDxGwBsjDHtfLDURRKGIQcv64iMB6XUKGPApty7nckm6l6Y38/qCQC/8ixkAGyw/GDrlVKFKlcXlBvgGf2I1xkAoZ+Izur7AywMAeDR+f+UARD/ENGt1npa19Ki/Xk3AMCbAGB1YuXapsclQORija/YAiD+UkqdLE51gYVhmN0lQxj4nwCEbcaw2YkBY8znc+d/njEn4yBN0/sdAJeOAQHDqgsAazZWAIhUXkSE8ixwfZjNZotMC6wScv3nOvCqlOIO6KKD03GvGIlKGWM6VWp/VaRsfRzHK4m1bdqJSFxaDTkI5/P5ZCcN5UMUkTVafFTVwmPr+fI0Tadupu0Ij20eIiJ6T5Lk+pwpyWenadrOS/2e8jkdzMIYc3MOEPZMDry9Mn9Qep1ebmmMua0TlPZd4Rf1loXabynjyshFaljU1xf5nMXG87xHInpzgy6//mjxsdWLRWrAcQEAoyRJXo8xYunm1q5jjBmcYq9U9RMgRMTvQm7ZWcW4qMgjhbso7n650YxOPWD2qmGVVLPdM2s5v5qkfcuAHHs1Fd1RioEqAKuu/QfdqKRAjzV1bwAAAABJRU5ErkJggg==';
 
 		container.appendChild(imageDiv);
 		container.appendChild(captionContainer);
@@ -131,9 +147,9 @@ _.extend(UnInVisible.prototype, {
 
 	_setupImage: function(img, options, cb){
 		var Uninvisible = this;
-		var dataUrl;
-		mapPin.status=false;
-		Uninvisible.imageDiv.style.backgroundSize="100%";
+		var dataUrl, newImg;
+		Uninvisible.mapPin.status = false;
+		Uninvisible.imageDiv.style.backgroundSize = "100%";
 
 		Uninvisible.sourceElement = img;
 
@@ -141,10 +157,10 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible.sourceElement = null;
 			Uninvisible.url = img;
 
-			var newImg = Uninvisible.image = new Image();
+			newImg = Uninvisible.image = new Image();
 			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = img;
 
-			Uninvisible.imageDiv.style.backgroundImage="url("+newImg.src+")";
+			Uninvisible.imageDiv.style.backgroundImage = "url(" + newImg.src + ")";
 
 			newImg.addEventListener('load', function(){
 				cb();
@@ -155,18 +171,19 @@ _.extend(UnInVisible.prototype, {
 
 			if(dataUrl == null && img.style.backgroundImage != null){
 				dataUrl = img.style.backgroundImage.substring(4, img.style.backgroundImage.length - 1);
-			};
+			}
 
-			var newImg = Uninvisible.image = new Image();
+			newImg = new Image();
 			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = dataUrl;
+			Uninvisible.image = newImg;
 
-			if(img.dataset.uninvisiblePin!==undefined){
-				mapPin.status=true;
-				Uninvisible.imageDiv.style.backgroundImage="url('Maps/pin.PNG'),url('"+dataUrl+"')";
-				mapPin.x=pins[img.dataset.uninvisiblePin].x;
-				mapPin.y=pins[img.dataset.uninvisiblePin].y;
-				Uninvisible.imageDiv.style.backgroundPosition=mapPin.x+"px "+mapPin.y+"px,left top";
-				Uninvisible.imageDiv.style.backgroundSize="5%, 100%";
+			if(img.dataset.uninvisiblePin !== undefined){
+				Uninvisible.mapPin.status = true;
+				Uninvisible.imageDiv.style.backgroundImage = "url('Maps/pin.PNG'),url('" + dataUrl + "')";
+				Uninvisible.mapPin.x = Uninvisible.pins[img.dataset.uninvisiblePin].x;
+				Uninvisible.mapPin.y = Uninvisible.pins[img.dataset.uninvisiblePin].y;
+				Uninvisible.imageDiv.style.backgroundPosition = Uninvisible.mapPin.x + "px " + Uninvisible.mapPin.y + "px,left top";
+				Uninvisible.imageDiv.style.backgroundSize = "5%, 100%";
 			}
 
 			newImg.addEventListener('load', function(){
@@ -175,16 +192,17 @@ _.extend(UnInVisible.prototype, {
 		} else if(img.nodeType === 1 && img.tagName === 'IMG') {
 
 			if(options.url || img.dataset.uninvisibleUrl){
-				var newImg = Uninvisible.image = new Image();
+				newImg = new Image();
 				newImg.src = Uninvisible.imageElement.src = Uninvisible.url = options.url || img.dataset.uninvisibleUrl;
+				Uninvisible.image = newImg;
 
-				Uninvisible.imageDiv.style.backgroundImage="url("+newImg.src+")";
+				Uninvisible.imageDiv.style.backgroundImage="url(" + newImg.src + ")";
 
 				newImg.addEventListener('load', function(){
 					cb();
 				});
 			} else {
-				Uninvisible.imageDiv.style.backgroundImage="url("+img.src+")";
+				Uninvisible.imageDiv.style.backgroundImage="url(" + img.src + ")";
 				Uninvisible.imageElement.src = img.src;
 				Uninvisible.image = img;
 				cb();
@@ -407,6 +425,7 @@ _.extend(UnInVisible.prototype, {
 				width: containerW,
 				height: scaledHeight
 			});
+
 			if(transform){
 				scale = Uninvisible.dimensions.scale = imgW / containerW;
 				matrix.scale(scale);
@@ -476,10 +495,10 @@ _.extend(UnInVisible.prototype, {
 		if(p.width) img.style.width = p.width + 'px';
 		if(p.height) img.style.height = p.height + 'px';
 
-		if(mapPin.status){
-			mapPin.sX=(mapPin.x-100)*(p.width/4300);
-		    mapPin.sY=(mapPin.y-70)*(p.height/2950);
-		    this.imageDiv.style.backgroundPosition=mapPin.sX+"px "+mapPin.sY+"px,left top";
+		if(this.mapPin.status){
+			this.mapPin.sX = (this.mapPin.x - 100) * (p.width / 4300);
+	    this.mapPin.sY = (this.mapPin.y - 70) * (p.height / 2950);
+	    this.imageDiv.style.backgroundPosition = this.mapPin.sX + "px " + this.mapPin.sY + "px,left top";
 		}
 	},
 
