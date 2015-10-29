@@ -51,6 +51,7 @@ function UnInVisible(options) {
 		this._createView();
 		this._addTouch();
 		this._setupDocument();
+		this._turnOnContainerTransitions();
 	}.bind(this));
 }
 
@@ -100,6 +101,12 @@ _.extend(UnInVisible.prototype, {
 		var imageDiv = this.imageDiv = this.imageElement = document.createElement('div');
     	imageDiv.classList.add('uninvisible-image');
 
+			imageDiv.style.webkitTransition = 'opacity .2s';
+			imageDiv.style.oTransition = 'opacity .2s';
+			imageDiv.style.mozTransition = 'opacity .2s';
+			imageDiv.style.msTransition = 'opacity .2s';
+			imageDiv.style.transition = 'opacity .2s';
+
 		var captionContainer = this.captionContainer = document.createElement( 'figcaption' );
 		captionContainer.classList.add('caption-container');
 
@@ -111,11 +118,12 @@ _.extend(UnInVisible.prototype, {
 		captionText.classList.add('caption-text');
 		captionContainer.appendChild(captionText);
 
-		var loadingSpinner = this.loadingSpinner = document.createElement('img');
-		loadingSpinner.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC70lEQVRYR71XzXnaQBCdQdxDOoAKYlcQGYk7riB2BcEVGFdgqCC4guAzu0SuIKQCSAWGs1aafKNvh28RCCQLsjdp/968mXkzi/CBEYahj4hERD5vJ6J1o9FYxHH8N4qiVZUjsezibrd7h4hfAaCPiK2ifUS0QsSpMWZcBsxJAEEQ9AHgGRHbZcHKOiKaJEnydAxIIQDf91vNZvMnAGQ0O2MDAAsiWiDi2v73iaiFiF8OgSSigdZ6fGjuIADf99v28ivHmhdEnCiloiIm7L47ABgAwCd3nWXjIYoiAZ1N7wFgyz3PW4qfiehPkiT9Mv6UC+0ZQ0T8ngehtb53/+0BCIKAqc2oJKKx1pqt+dDgwG00GiOXjfyZOwCCIBgJ6rqXC+Jer3dFRL9zFtyIK7cArP+W1vIXrTX78iwjDENm8dmJp5XWurMTA0EQTBDxGwBsjDHtfLDURRKGIQcv64iMB6XUKGPApty7nckm6l6Y38/qCQC/8ixkAGyw/GDrlVKFKlcXlBvgGf2I1xkAoZ+Izur7AywMAeDR+f+UARD/ENGt1npa19Ki/Xk3AMCbAGB1YuXapsclQORija/YAiD+UkqdLE51gYVhmN0lQxj4nwCEbcaw2YkBY8znc+d/njEn4yBN0/sdAJeOAQHDqgsAazZWAIhUXkSE8ixwfZjNZotMC6wScv3nOvCqlOIO6KKD03GvGIlKGWM6VWp/VaRsfRzHK4m1bdqJSFxaDTkI5/P5ZCcN5UMUkTVafFTVwmPr+fI0Tadupu0Ij20eIiJ6T5Lk+pwpyWenadrOS/2e8jkdzMIYc3MOEPZMDry9Mn9Qep1ebmmMua0TlPZd4Rf1loXabynjyshFaljU1xf5nMXG87xHInpzgy6//mjxsdWLRWrAcQEAoyRJXo8xYunm1q5jjBmcYq9U9RMgRMTvQm7ZWcW4qMgjhbso7n650YxOPWD2qmGVVLPdM2s5v5qkfcuAHHs1Fd1RioEqAKuu/QfdqKRAjzV1bwAAAABJRU5ErkJggg==';
+		var loadingSpinner = this.loadingSpinner = document.createElement('div');
+		loadingSpinner.classList.add('spinner');
 
 		container.appendChild(imageDiv);
 		container.appendChild(captionContainer);
+		container.appendChild(loadingSpinner);
 	},
 
 	_renderView: function(){
@@ -137,12 +145,52 @@ _.extend(UnInVisible.prototype, {
 
 		options = Uninvisible.currentImageOptions = options || {};
 
+		// Uninvisible.container.style.opacity = 0;
+		Uninvisible.container.style.display = 'block';
+		Uninvisible.imageDiv.style.opacity = 0;
+		Uninvisible.loadingSpinner.classList.remove('done-loading');
+
 		Uninvisible._setupImage(img, options, function(){
+			Uninvisible.imageDiv.style.opacity = 1;
+			Uninvisible.loadingSpinner.classList.add('done-loading');
+			Uninvisible._open(options);
+
+			setTimeout(function(){
+					Uninvisible._turnOnTransitions();
+					Uninvisible._addAnimationCompleteListener(_onOpenComplete);
+			},1);
+
+			setTimeout(function(){
+				Uninvisible._expand(options);
+				// Uninvisible.container.style.opacity = 1;
+			},10);
+		});
+			Uninvisible._open(options);
 			Uninvisible.setCaption(options);
 			Uninvisible._renderView();
-			Uninvisible._open(options);
 			Uninvisible._setupCloseListener();
-		});
+			setTimeout(function(){
+				// Uninvisible._expand(options);
+				Uninvisible.container.style.opacity = 1;
+			},10);
+
+			function _onOpenComplete(){
+				Uninvisible.isAnimating = false;
+				Uninvisible.isOpen = true;
+				document.body.style.overflow = 'hidden';
+
+				Uninvisible._removeAnimationCompleteListener(_onOpenComplete);
+				Uninvisible._turnOffTransitions();
+
+				if(Uninvisible.isDevice && !(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain")){
+					Uninvisible._initTrackingTouch();
+				} else {
+					Uninvisible._initTrackingMouse();
+				}
+
+				Uninvisible.emit('open');
+				if(typeof options.onOpen === 'function') options.onOpen();
+			}
 	},
 
 	_setupImage: function(img, options, cb){
@@ -274,41 +322,41 @@ _.extend(UnInVisible.prototype, {
 
 	_open: function(options){
 		var Uninvisible = this;
-
+		if(Uninvisible.isAnimating) return;
 		Uninvisible.isAnimating = true;
 		Uninvisible.emit('open:start');
 
 		Uninvisible._resetMatrix();
 		Uninvisible._setToImgLocation();
-		Uninvisible.container.style.display = 'block';
+		// Uninvisible.container.style.display = 'block';
 
-		setTimeout(function(){
-				Uninvisible._turnOnTransitions();
-				Uninvisible._addAnimationCompleteListener(_onOpenComplete);
-		},1);
+		// setTimeout(function(){
+		// 		Uninvisible._turnOnTransitions();
+		// 		Uninvisible._addAnimationCompleteListener(_onOpenComplete);
+		// },1);
+// Uninvisible.container.style.opacity = 1;
+		// setTimeout(function(){
+		// 	Uninvisible._expand(options);
+		// 	Uninvisible.container.style.opacity = 1;
+		// },10);
 
-		setTimeout(function(){
-			Uninvisible._expand(options);
-			Uninvisible.container.style.opacity = 1;
-		},10);
-
-		function _onOpenComplete(){
-			Uninvisible.isAnimating = false;
-			Uninvisible.isOpen = true;
-			document.body.style.overflow = 'hidden';
-
-			Uninvisible._removeAnimationCompleteListener(_onOpenComplete);
-			Uninvisible._turnOffTransitions();
-
-			if(Uninvisible.isDevice && !(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain")){
-				Uninvisible._initTrackingTouch();
-			} else {
-				Uninvisible._initTrackingMouse();
-			}
-
-			Uninvisible.emit('open');
-			if(typeof options.onOpen === 'function') options.onOpen();
-		}
+		// function _onOpenComplete(){
+		// 	Uninvisible.isAnimating = false;
+		// 	Uninvisible.isOpen = true;
+		// 	document.body.style.overflow = 'hidden';
+		//
+		// 	Uninvisible._removeAnimationCompleteListener(_onOpenComplete);
+		// 	Uninvisible._turnOffTransitions();
+		//
+		// 	if(Uninvisible.isDevice && !(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain")){
+		// 		Uninvisible._initTrackingTouch();
+		// 	} else {
+		// 		Uninvisible._initTrackingMouse();
+		// 	}
+		//
+		// 	Uninvisible.emit('open');
+		// 	if(typeof options.onOpen === 'function') options.onOpen();
+		// }
 	},
 
 	_close: function(options){
@@ -319,6 +367,7 @@ _.extend(UnInVisible.prototype, {
 
 		Uninvisible._addAnimationCompleteListener(_onCloseComplete);
 		Uninvisible._setToImgLocation();
+		Uninvisible.container.style.opacity = 0;
 
 		// FIXES BUG WHERE ANIMATION LISTENER DOESNT FIRE WHEN NOT RETURNING TO AN ELEMENT ON THE PAGE
 		setTimeout(function(){
@@ -333,8 +382,10 @@ _.extend(UnInVisible.prototype, {
 			document.body.style.cursor = 'auto';
 
 			Uninvisible.container.style.display = 'none';
+			Uninvisible.imageDiv.style.opacity = 0;
 			Uninvisible.clearCaption();
 			Uninvisible.sourceElement = null;
+			Uninvisible.image = null;
 
 			Uninvisible._turnOffTransitions();
 			Uninvisible._removeAnimationCompleteListener(_onCloseComplete);
@@ -512,12 +563,19 @@ _.extend(UnInVisible.prototype, {
 		if(Uninvisible.sourceElement) position = Uninvisible.sourceElement.getBoundingClientRect();
 
 		// will also be null if the source element has been removed
-		if(position == null){
+		if(position == null && Uninvisible.image){
 			position = {
 				left: (containerW - Uninvisible.image.naturalWidth) / 2,
 				top: (containerH - Uninvisible.image.naturalHeight) / 2,
 				width: Uninvisible.image.naturalWidth,
 				height: Uninvisible.image.naturalHeight
+			};
+		} else if (position == null) {
+			position = {
+				left: 0,
+				top: 0,
+				width: containerW,
+				height: containerH
 			};
 		}
 
@@ -528,7 +586,7 @@ _.extend(UnInVisible.prototype, {
 			height: position.height
 		});
 
-		Uninvisible.container.style.opacity = 0;
+		// Uninvisible.container.style.opacity = 0;
 	},
 
 	_turnOnTransitions: function(){
@@ -541,6 +599,17 @@ _.extend(UnInVisible.prototype, {
 		imageElement.style.mozTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
 		imageElement.style.msTransition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
 		imageElement.style.transition = 'top ' + speed +', height ' + speed + ', width ' + speed + ', left ' + speed + ', opacity ' + speed;
+		// container.style.webkitTransition = 'opacity ' + speed;
+		// container.style.oTransition = 'opacity ' + speed;
+		// container.style.mozTransition = 'opacity ' + speed;
+		// container.style.msTransition = 'opacity ' + speed;
+		// container.style.transition = 'opacity ' + speed;
+	},
+
+	_turnOnContainerTransitions: function(){
+		var container = this.container;
+		var speed = (this.options.animationSpeed / 1000) + 's';
+
 		container.style.webkitTransition = 'opacity ' + speed;
 		container.style.oTransition = 'opacity ' + speed;
 		container.style.mozTransition = 'opacity ' + speed;
@@ -557,11 +626,11 @@ _.extend(UnInVisible.prototype, {
 		imageElement.style.mozTransition = 'none';
 		imageElement.style.msTransition = 'none';
 		imageElement.style.transition = 'none';
-		container.style.webkitTransition = 'none';
-		container.style.oTransition = 'none';
-		container.style.mozTransition = 'none';
-		container.style.msTransition = 'none';
-		container.style.transition = 'none';
+		// container.style.webkitTransition = 'none';
+		// container.style.oTransition = 'none';
+		// container.style.mozTransition = 'none';
+		// container.style.msTransition = 'none';
+		// container.style.transition = 'none';
 	},
 
 	_addAnimationCompleteListener: function(fn){
