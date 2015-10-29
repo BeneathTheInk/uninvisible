@@ -13,7 +13,6 @@ function UnInVisible(options) {
 	this.isDevice = !!('ontouchstart' in window);
 
 	this.sourceElement = null;
-	this.url = null;
 	this.image = null;
 	this.dimensions = {
 		scale: 1,
@@ -203,10 +202,9 @@ _.extend(UnInVisible.prototype, {
 
 		if(typeof img === 'string'){
 			Uninvisible.sourceElement = null;
-			Uninvisible.url = img;
 
 			newImg = Uninvisible.image = new Image();
-			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = img;
+			newImg.src = Uninvisible.imageElement.src = img;
 
 			Uninvisible.imageDiv.style.backgroundImage = "url(" + newImg.src + ")";
 
@@ -222,7 +220,8 @@ _.extend(UnInVisible.prototype, {
 			}
 
 			newImg = new Image();
-			newImg.src = Uninvisible.imageElement.src = Uninvisible.url = dataUrl;
+			newImg.src = Uninvisible.imageElement.src = dataUrl;
+			Uninvisible.imageElement.style.backgroundImage = "url('" + dataUrl + "')";
 			Uninvisible.image = newImg;
 
 			if(img.dataset.uninvisiblePin !== undefined){
@@ -241,7 +240,7 @@ _.extend(UnInVisible.prototype, {
 
 			if(options.url || img.dataset.uninvisibleUrl){
 				newImg = new Image();
-				newImg.src = Uninvisible.imageElement.src = Uninvisible.url = options.url || img.dataset.uninvisibleUrl;
+				newImg.src = Uninvisible.imageElement.src = options.url || img.dataset.uninvisibleUrl;
 				Uninvisible.image = newImg;
 
 				Uninvisible.imageDiv.style.backgroundImage="url(" + newImg.src + ")";
@@ -250,7 +249,7 @@ _.extend(UnInVisible.prototype, {
 					cb();
 				});
 			} else {
-				Uninvisible.imageDiv.style.backgroundImage="url(" + img.src + ")";
+				Uninvisible.imageDiv.style.backgroundImage = "url(" + img.src + ")";
 				Uninvisible.imageElement.src = img.src;
 				Uninvisible.image = img;
 				cb();
