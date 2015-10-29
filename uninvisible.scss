@@ -68,6 +68,11 @@
     height: 100px;
     margin: 45% auto;
     background-color: #FFF;
+		position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -50px;
+    margin-top: -50px;
 
 	  border-radius: 100%;
 	  -webkit-animation: sk-scaleout 1.0s infinite ease-in-out;
