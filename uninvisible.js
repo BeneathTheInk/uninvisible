@@ -812,9 +812,9 @@ _.extend(UnInVisible.prototype, {
 
 			change = e.deltaY * 0.001 + 1;
 
-			if(curScale * change < 0.95 || curScale * change > 10) return onWheelEnd();
+			if(curScale * change < 0.95 || curScale * change > 50) return onWheelEnd();
 
-			matrix.scale(change);
+			matrix.scale(change, origin);
 			Uninvisible._transformCSS(matrix);
 
 			onWheelEnd();
@@ -826,16 +826,10 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible._checkImagePositioning();
 		}, 200);
 
-		var curX, curY;
-		var clone;
-
 		onMouseDown = function(e){
 			if(isZooming === true) return;
 			Uninvisible.container.classList.add('grabbing');
 			isDragging = true;
-
-			curX = e.pageX;
-			curY = e.pageY;
 
 			Uninvisible.container.addEventListener('mousemove', onMouseMove);
 		};
@@ -843,11 +837,8 @@ _.extend(UnInVisible.prototype, {
 		onMouseMove = _.throttle(function(e){
 			if(isZooming === true) return;
 
-			matrix.translate(e.pageX - curX, e.pageY - curY);
+			matrix.translate(e.movementX, e.movementY);
 			Uninvisible._transformCSS(matrix);
-
-			curX = e.pageX;
-			curY = e.pageY;
 		}, 1000/30);
 
 		onMouseUp = function(e){
@@ -859,14 +850,16 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible._checkImagePositioning();
 		};
 
-		this.container.addEventListener('mousedown', onMouseDown);
-		this.container.addEventListener('mouseup', onMouseUp);
+		Uninvisible.container.addEventListener('mousedown', onMouseDown);
+		Uninvisible.container.addEventListener('mouseup', onMouseUp);
+		Uninvisible.container.addEventListener('mouseleave', onMouseUp);
 		document.addEventListener('wheel', onWheelZoom);
 
 		var onCloseView = function(){
 			Uninvisible.removeListener('close:start', onCloseView);
-			this.container.removeEventListener('mousedown', onMouseDown);
-			this.container.removeEventListener('mouseup', onMouseUp);
+			Uninvisible.container.removeEventListener('mousedown', onMouseDown);
+			Uninvisible.container.removeEventListener('mouseup', onMouseUp);
+			Uninvisible.container.removeEventListener('mouseleave', onMouseUp);
 			document.removeEventListener('wheel', onWheelZoom);
 			Uninvisible.container.classList.remove('grabbing');
 		};
