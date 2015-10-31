@@ -397,7 +397,7 @@ _.extend(UnInVisible.prototype, {
 
 		if(!Uninvisible.isDevice){
 			if(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain"){
-				Uninvisible.orientation = options.orientation || 1;
+				Uninvisible.orientation = 1;
 				if (imgW < containerW && imgH < containerH){
 					if(imgW / imgH >= containerW / containerH){
 						setToNaturalWidth(true);
@@ -596,8 +596,10 @@ _.extend(UnInVisible.prototype, {
 		var speed = (this.options.animationSpeed / 1000) + 's';
 
 		imageElement.style.webkitTransition = 'transform ' + speed;
+		imageElement.style.webkitTransition = '-webkit-transform ' + speed;
 		imageElement.style.oTransition = 'transform ' + speed;
 		imageElement.style.mozTransition = 'transform ' + speed;
+		imageElement.style.mozTransition = '-moz-transform ' + speed;
 		imageElement.style.msTransition = 'transform ' + speed;
 		imageElement.style.transition = 'transform ' + speed;
 	},
@@ -797,10 +799,9 @@ _.extend(UnInVisible.prototype, {
 
 		var matrix = this.matrix;
 
-		var origin;
+		var origin, difX, difY, startY, moveX, moveY, curX, curY;
 
 		function onWheelZoom(e){
-			// console.log(e);
 			e.preventDefault();
 
 			isZooming = true;
@@ -830,8 +831,12 @@ _.extend(UnInVisible.prototype, {
 
 		onMouseDown = function(e){
 			if(isZooming === true) return;
+
 			Uninvisible.container.classList.add('grabbing');
 			isDragging = true;
+
+			curX = e.screenX;
+			curY = e.screenY;
 
 			Uninvisible.container.addEventListener('mousemove', onMouseMove);
 		};
@@ -839,7 +844,22 @@ _.extend(UnInVisible.prototype, {
 		onMouseMove = _.throttle(function(e){
 			if(isZooming === true) return;
 
-			matrix.translate(e.movementX || e.mozMovementX, e.movementY || e.mozMovementY);
+			// if(e.movementX !== undefined){
+			// 	moveX = e.movementX;
+			// 	moveY = e.movementY;
+			// } else if (e.mozMovementX !== undefined){
+			// 	moveX = e.mozMovementX;
+			// 	moveY = e.mozMovementY;
+			// } else {
+				moveX = e.screenX - curX;
+				moveY = e.screenY - curY;
+
+				curX = e.screenX;
+				curY = e.screenY;
+			// }
+
+			matrix.translate(moveX, moveY);
+
 			Uninvisible._transformCSS(matrix);
 		}, 1000/30);
 
@@ -859,6 +879,7 @@ _.extend(UnInVisible.prototype, {
 
 		var onCloseView = function(){
 			Uninvisible.removeListener('close:start', onCloseView);
+			Uninvisible.container.removeEventListener('mousemove', onMouseMove);
 			Uninvisible.container.removeEventListener('mousedown', onMouseDown);
 			Uninvisible.container.removeEventListener('mouseup', onMouseUp);
 			Uninvisible.container.removeEventListener('mouseleave', onMouseUp);
@@ -979,7 +1000,6 @@ _.extend(UnInVisible.prototype, {
 
 		// rasterize the matrix and apply it
 		var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
-		// imageElement.style.transform = "matrix(" + t + ")";
 		if(!preventTransform) this._transformCSS(t);
 	},
 
@@ -992,6 +1012,7 @@ _.extend(UnInVisible.prototype, {
 			t = t.join(",");
 		}
 
+		this.imageElement.style['-webkit-transform'] = "matrix(" + t + ")";
 		this.imageElement.style.transform = "matrix(" + t + ")";
 	},
 
