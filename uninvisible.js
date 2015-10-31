@@ -800,12 +800,14 @@ _.extend(UnInVisible.prototype, {
 		var origin;
 
 		function onWheelZoom(e){
+			// console.log(e);
 			e.preventDefault();
+
 			isZooming = true;
 			Uninvisible.orientation = 6;
 
 			if(!origin) {
-				origin = Uninvisible._screenToImage(matrix, e.x, e.y);
+				origin = Uninvisible._screenToImage(matrix, e.pageX, e.pageY);
 			}
 
 			curScale = matrix.decompose().scaling.y;
@@ -837,7 +839,7 @@ _.extend(UnInVisible.prototype, {
 		onMouseMove = _.throttle(function(e){
 			if(isZooming === true) return;
 
-			matrix.translate(e.movementX, e.movementY);
+			matrix.translate(e.movementX || e.mozMovementX, e.movementY || e.mozMovementY);
 			Uninvisible._transformCSS(matrix);
 		}, 1000/30);
 
@@ -1029,7 +1031,6 @@ _.extend(UnInVisible.prototype, {
 
 	_checkImagePositioning: function(){
 		Uninvisible = this;
-		var location = this._getImageToWindowPosition();
 		var matrix = this.matrix;
 		var scale = matrix.decompose().scaling.y;
 		var changeCss = false;
@@ -1039,6 +1040,7 @@ _.extend(UnInVisible.prototype, {
 			this._resetMatrix();
 		}
 
+		var location = this._getImageToWindowPosition();
 		if(location.left !== 0 || location.right !== 0 || location.top !== 0 || location.bottom !== 0){
 			changeCss = true;
 
