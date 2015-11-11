@@ -8,12 +8,15 @@ var domready = require("domready");
 var closest = require("closest");
 
 function UnInVisible(options) {
-	this.options = _.clone(UnInVisible.defaults);
+	options = options || {};
+
+	this.options = _.extend(_.clone(UnInVisible.defaults), options);
 
 	this.isDevice = !!('ontouchstart' in window);
 
 	this.sourceElement = null;
 	this.image = null;
+	this.imageUrl = null;
 	this.dimensions = {
 		scale: 1,
 		initialWidth: null,
@@ -96,7 +99,7 @@ _.extend(UnInVisible.prototype, {
 			}
 		}
 
-		doc.addEventListener("click", onClick);
+		if(this.options.setupClick !== false) doc.addEventListener("click", onClick);
 
 		Uninvisible.once('destroy', function() {
 				doc.removeEventListener("click", onClick);
@@ -149,6 +152,7 @@ _.extend(UnInVisible.prototype, {
 		var Uninvisible = this;
 
 		if(Uninvisible.isAnimating || Uninvisible.isOpen) return;
+		Uninvisible.isAnimating = true;
 
 		if(typeof img !== 'string' && img.nodeType === 1){
 			if(closest(img, '[data-uninvisible-nozoom]', true)) return;
@@ -174,98 +178,169 @@ _.extend(UnInVisible.prototype, {
 				Uninvisible._expand(options);
 			},10);
 		});
-			Uninvisible._open(options);
-			Uninvisible.setCaption(options);
-			Uninvisible._renderView();
-			Uninvisible._setupCloseListener();
-			setTimeout(function(){
-				Uninvisible.container.style.opacity = 1;
-			},10);
 
-			function _onOpenComplete(){
-				Uninvisible.isAnimating = false;
-				Uninvisible.isOpen = true;
-				document.body.style.overflow = 'hidden';
+		Uninvisible._open(options);
+		Uninvisible.setCaption(options);
+		Uninvisible._renderView();
+		Uninvisible._setupCloseListener();
+		setTimeout(function(){
+			Uninvisible.container.style.opacity = 1;
+		},10);
 
-				Uninvisible._removeAnimationCompleteListener(_onOpenComplete);
-				Uninvisible._turnOffTransitions();
+		function _onOpenComplete(){
+			Uninvisible.isAnimating = false;
+			Uninvisible.isOpen = true;
+			document.body.style.overflow = 'hidden';
 
-				if(Uninvisible.isDevice && !(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain")){
-					Uninvisible._initTrackingTouch();
-				} else {
-					Uninvisible._initTrackingDesktop();
-				}
+			Uninvisible._removeAnimationCompleteListener(_onOpenComplete);
+			Uninvisible._turnOffTransitions();
 
-				Uninvisible.emit('open');
-				if(typeof options.onOpen === 'function') options.onOpen();
+			if(Uninvisible.isDevice && !(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain")){
+				Uninvisible._initTrackingTouch();
+			} else {
+				Uninvisible._initTrackingDesktop();
 			}
+
+			Uninvisible.emit('open');
+			if(typeof options.onOpen === 'function') options.onOpen();
+		}
 	},
 
 	_setupImage: function(img, options, cb){
 		var Uninvisible = this;
-		var dataUrl, newImg;
 		Uninvisible.mapPin.status = false;
-		Uninvisible.imageDiv.style.backgroundSize = "100%";
+		Uninvisible.imageDiv.style.backgroundSize = "100%"; // reset to 100%, for after there was a map pin
 
 		Uninvisible.sourceElement = img;
 
-		if(typeof img === 'string'){
-			Uninvisible.sourceElement = null;
+		if(img.nodeType === 1 && img.dataset.uninvisibleTarget){
+			Uninvisible._setupImageFromTarget(img, options, cb);
+		} else if(typeof img === 'string'){
+			Uninvisible._setupImageFromString(img, options, cb);
+		} else if(img.nodeType === 1 && img.tagName !== 'IMG'){
+			Uninvisible._setupImageFromElement(img, options, cb);
+		} else if(img.nodeType === 1 && img.tagName === 'IMG') {
+			Uninvisible._setupImageFromImage(img, options, cb);
+		} else {
+			return null;
+		}
+	},
 
-			newImg = Uninvisible.image = new Image();
-			newImg.src = Uninvisible.imageElement.src = img;
+	_setupImageFromString: function(img, options, cb){
+		var Uninvisible = this;
+		var newImg;
+
+		Uninvisible.sourceElement = null;
+
+		newImg = Uninvisible.image = new Image();
+		newImg.src = Uninvisible.imageUrl = Uninvisible.imageElement.src = img;
+
+		Uninvisible.imageDiv.style.backgroundImage = "url(" + newImg.src + ")";
+
+		newImg.addEventListener('load', function(){
+			cb();
+		});
+	},
+
+	_setupImageFromTarget: function(img, options, cb){
+		var Uninvisible = this;
+
+		var target = document.getElementById(img.dataset.uninvisibleTarget);
+		if(!target) return Uninvisible.closeViewerImmediately();
+
+		Uninvisible.sourceElement = target;
+
+		var dataUrl, newImg;
+
+		dataUrl = options.url || img.dataset.uninvisibleUrl || target.dataset.uninvisibleUrl || target.src;
+
+		if(dataUrl == null){
+			var imgCss = target.style.backgroundImage || window.getComputedStyle(target).backgroundImage;
+
+			if(imgCss.substring(0,5) === 'url("' || imgCss.substring(0,5) === "url('" ) {
+				dataUrl = imgCss.substring(5, imgCss.length - 2);
+			} else if(imgCss.substring(0,4) === 'url('){
+				dataUrl = imgCss.substring(4, imgCss.length - 1);
+			}
+		}
+
+		if(!dataUrl) return Uninvisible.closeViewerImmediately();
+
+		newImg = new Image();
+		newImg.src = Uninvisible.imageUrl = Uninvisible.imageElement.src = dataUrl;
+		Uninvisible.imageElement.style.backgroundImage = "url('" + dataUrl + "')";
+		Uninvisible.image = newImg;
+
+		newImg.addEventListener('load', function(){
+			Uninvisible._setupMapPins(img);
+			cb();
+		});
+	},
+
+	_setupImageFromImage: function(img, options, cb){
+		var Uninvisible = this;
+		var newImg;
+
+		if(options.url || img.dataset.uninvisibleUrl){
+			newImg = new Image();
+			newImg.src = Uninvisible.imageUrl = Uninvisible.imageElement.src = options.url || img.dataset.uninvisibleUrl;
+			Uninvisible.image = newImg;
 
 			Uninvisible.imageDiv.style.backgroundImage = "url(" + newImg.src + ")";
 
 			newImg.addEventListener('load', function(){
+				Uninvisible._setupMapPins(img);
 				cb();
 			});
-		} else if(img.nodeType === 1 && img.tagName !== 'IMG'){
+		} else {
+			Uninvisible.imageDiv.style.backgroundImage = "url(" + img.src + ")";
+		 Uninvisible.imageUrl =	Uninvisible.imageElement.src = img.src;
 			Uninvisible.image = img;
-			dataUrl = options.url || img.dataset.uninvisibleUrl;
+			Uninvisible._setupMapPins(img);
+			cb();
+		}
+	},
 
-			if(dataUrl == null && img.style.backgroundImage != null){
-				dataUrl = img.style.backgroundImage.substring(4, img.style.backgroundImage.length - 1);
+	_setupImageFromElement: function(img, options, cb){
+		var Uninvisible = this;
+		var dataUrl, newImg;
+
+		dataUrl = options.url || img.dataset.uninvisibleUrl;
+
+		if(dataUrl == null && img.style.backgroundImage != null){
+			var imgCss = img.style.backgroundImage || window.getComputedStyle(img).backgroundImage;
+
+			if(imgCss.substring(0,5) === 'url("' || imgCss.substring(0,5) === "url('" ) {
+				dataUrl = imgCss.substring(5, imgCss.length - 2);
+			} else if(imgCss.substring(0,4) === 'url('){
+				dataUrl = imgCss.substring(4, imgCss.length - 1);
 			}
+		}
 
-			newImg = new Image();
-			newImg.src = Uninvisible.imageElement.src = dataUrl;
-			Uninvisible.imageElement.style.backgroundImage = "url('" + dataUrl + "')";
-			Uninvisible.image = newImg;
+		if(!dataUrl) return Uninvisible.closeViewerImmediately();
+
+		newImg = new Image();
+		newImg.src = Uninvisible.imageUrl = Uninvisible.imageElement.src = dataUrl;
+		Uninvisible.imageElement.style.backgroundImage = "url('" + dataUrl + "')";
+		Uninvisible.image = newImg;
+
+		newImg.addEventListener('load', function(){
+			Uninvisible._setupMapPins(img);
+			cb();
+		});
+	},
+
+	_setupMapPins: function(img){
+			var Uninvisible = this;
 
 			if(img.dataset.uninvisiblePin !== undefined){
 				Uninvisible.mapPin.status = true;
-				Uninvisible.imageDiv.style.backgroundImage = "url('Maps/pin.PNG'),url('" + dataUrl + "')";
+				Uninvisible.imageDiv.style.backgroundImage = "url('Maps/pin.PNG'),url('" + Uninvisible.imageUrl + "')";
 				Uninvisible.mapPin.x = Uninvisible.pins[img.dataset.uninvisiblePin].x;
 				Uninvisible.mapPin.y = Uninvisible.pins[img.dataset.uninvisiblePin].y;
 				Uninvisible.imageDiv.style.backgroundPosition = Uninvisible.mapPin.x + "px " + Uninvisible.mapPin.y + "px,left top";
 				Uninvisible.imageDiv.style.backgroundSize = "5%, 100%";
 			}
-
-			newImg.addEventListener('load', function(){
-				cb();
-			});
-		} else if(img.nodeType === 1 && img.tagName === 'IMG') {
-
-			if(options.url || img.dataset.uninvisibleUrl){
-				newImg = new Image();
-				newImg.src = Uninvisible.imageElement.src = options.url || img.dataset.uninvisibleUrl;
-				Uninvisible.image = newImg;
-
-				Uninvisible.imageDiv.style.backgroundImage = "url(" + newImg.src + ")";
-
-				newImg.addEventListener('load', function(){
-					cb();
-				});
-			} else {
-				Uninvisible.imageDiv.style.backgroundImage = "url(" + img.src + ")";
-				Uninvisible.imageElement.src = img.src;
-				Uninvisible.image = img;
-				cb();
-			}
-		} else {
-			return null;
-		}
 	},
 
 	_setupCloseListener: function(){
@@ -298,7 +373,7 @@ _.extend(UnInVisible.prototype, {
 	closeViewerImmediately: function(){
 		this.emit('close:start');
 		this.container.style.display = 'none';
-		this.clearCaption();
+		this._reset();
 	},
 
 	setCaption: function(options){
@@ -328,10 +403,8 @@ _.extend(UnInVisible.prototype, {
 		this.captionText.innerHTML = '';
 	},
 
-	_open: function(options){
+	_open: function(){
 		var Uninvisible = this;
-		if(Uninvisible.isAnimating) return;
-		Uninvisible.isAnimating = true;
 		Uninvisible.emit('open:start');
 
 		Uninvisible._resetMatrix();
@@ -373,7 +446,9 @@ _.extend(UnInVisible.prototype, {
 
 			Uninvisible._removeView();
 
-			if(typeof options.onClose === 'function') options.onClose();
+			var closeComplete = options.onClose || Uninvisible.options.onClose;
+			if(closeComplete && typeof closeComplete === 'function') closeComplete();
+
 			if(typeof Uninvisible.currentImageOptions.onClose === 'function') Uninvisible.currentImageOptions.onClose();
 			Uninvisible.currentImageOptions = {};
 
@@ -383,7 +458,6 @@ _.extend(UnInVisible.prototype, {
 
 	_expand: function(options){
 		var Uninvisible = this;
-		var imageElement = Uninvisible.imageElement;
 		var matrix = this.matrix;
 		options = options || {};
 
@@ -606,7 +680,6 @@ _.extend(UnInVisible.prototype, {
 
 	_turnOffTransitions: function(){
 		var imageElement = this.imageElement;
-		var container = this.container;
 
 		imageElement.style.webkitTransition = 'none';
 		imageElement.style.oTransition = 'none';
@@ -649,17 +722,17 @@ _.extend(UnInVisible.prototype, {
 		var Uninvisible = this;
 		resetVars();
 
-		var matrix, clone, origTx, origTy, imgW, imgH, scaledHeight, scaledWidth, xDestPercent, yDestPercent,xPercent, yPercent,followMouse,expandByX, expandByY, currTx,currTy, newTx, newTy, x, y, curX, curY, wX, wY, newScale, curScale, offsetX, offsetY, onWheelEnd, origin, loc;
+		var matrix, imgW, imgH, scaledHeight, scaledWidth;
+		var xDestPercent, yDestPercent, xPercent, yPercent;
+		var expandByX, expandByY, currTx, currTy, newTx, newTy;
+		var x, y, curX, curY, curScale;
+
 
 		function resetVars(){
 			matrix = Uninvisible.matrix;
-			clone = matrix.clone();
-			origTx = clone.tx;
-			origTy = clone.ty;
 
 			imgW = Uninvisible.dimensions.initialWidth;
 			imgH = Uninvisible.dimensions.initialHeight;
-
 
 			xDestPercent = 50;
 			yDestPercent = 50;
@@ -672,20 +745,12 @@ _.extend(UnInVisible.prototype, {
 			newTy = currTy;
 			x = 0;
 			y = 0;
-
 			curX = 0;
 			curY = 0;
-			wX = 0;
-			wY = 0;
-			newScale = clone.a;
-			curScale = clone.a;
-			offsetX = 0;
-			offsetY = 0;
-
-
+			curScale = matrix.decompose().scaling.y;
 		}
 
-		followMouse = _.throttle(function(e){
+		var followMouse = _.throttle(function(e){
 			if(Uninvisible.orientation < 2) return;
 
 			xDestPercent = (e.clientX / window.innerWidth) * 100;
@@ -778,6 +843,7 @@ _.extend(UnInVisible.prototype, {
 
 		var onCloseView = function(){
 			Uninvisible.removeListener('close:start', onCloseView);
+			Uninvisible.removeListener('stoptracking', onCloseView);
 			removeEventListener('mousemove', followMouse);
 			document.removeEventListener('wheel', onWheelZoom);
 			curX = curY = 0;
@@ -799,7 +865,7 @@ _.extend(UnInVisible.prototype, {
 
 		var matrix = this.matrix;
 
-		var origin, difX, difY, startY, moveX, moveY, curX, curY;
+		var origin, moveX, moveY, curX, curY;
 
 		function onWheelZoom(e){
 			e.preventDefault();
@@ -808,12 +874,18 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible.orientation = 6;
 
 			if(!origin) {
-				origin = Uninvisible._screenToImage(matrix, e.pageX, e.pageY);
+				origin = Uninvisible._screenToImage(matrix, e.clientX, e.clientY);
 			}
 
-			curScale = matrix.decompose().scaling.y;
+			var curScale = matrix.decompose().scaling.y;
 
-			change = e.deltaY * 0.001 + 1;
+			var change = 1 - (e.deltaY * 0.001);
+
+			var onWheelEnd = _.debounce(function(){
+				origin = null;
+				isZooming = false;
+				Uninvisible._checkImagePositioning();
+			}, 200);
 
 			if(curScale * change < 0.95 || curScale * change > 50) return onWheelEnd();
 
@@ -823,11 +895,6 @@ _.extend(UnInVisible.prototype, {
 			onWheelEnd();
 		}
 
-		onWheelEnd = _.debounce(function(){
-			origin = null;
-			isZooming = false;
-			Uninvisible._checkImagePositioning();
-		}, 200);
 
 		onMouseDown = function(e){
 			if(isZooming === true) return;
@@ -863,7 +930,7 @@ _.extend(UnInVisible.prototype, {
 			Uninvisible._transformCSS(matrix);
 		}, 1000/30);
 
-		onMouseUp = function(e){
+		onMouseUp = function(){
 			Uninvisible.container.removeEventListener('mousemove', onMouseMove);
 			Uninvisible.container.classList.remove('grabbing');
 
@@ -895,10 +962,7 @@ _.extend(UnInVisible.prototype, {
 
 		var onTouchStart, onTouchEnd, handleTouchMove,
 			isTouching = false,
-			isZooming = false,
-			startXTouch, startYTouch;
-
-		var relCenterX, relCenterY;
+			isZooming = false;
 
 		var matrix = this.matrix;
 
@@ -1051,7 +1115,7 @@ _.extend(UnInVisible.prototype, {
 	},
 
 	_checkImagePositioning: function(){
-		Uninvisible = this;
+		var Uninvisible = this;
 		var matrix = this.matrix;
 		var scale = matrix.decompose().scaling.y;
 		var changeCss = false;
@@ -1102,6 +1166,29 @@ _.extend(UnInVisible.prototype, {
 		this._removeView();
 		this.emit('destroy');
 	},
+
+	_reset: function(){
+		this.sourceElement = null;
+		this.image = null;
+		this.imageUrl = null;
+		this.dimensions = {
+			scale: 1,
+			initialWidth: null,
+			initialHeight: null
+		};
+		this.isAnimating = false;
+		this.isOpen = false;
+		this.orientation = null;
+		this.clearCaption();
+	},
+
+	// TODO preloadImages?
+	// preloadImages: function(){
+	//
+	// }
+
+	// TODO for when zooming, if image is smaller then screen, after zooming the _checkImagePositioning() expands the image to full size...
+	// checkSizeOfImageAndSizeOfContainerForResize(){};
 });
 
-var U = module.exports = new UnInVisible();
+module.exports = new UnInVisible();
