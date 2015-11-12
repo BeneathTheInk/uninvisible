@@ -14,13 +14,15 @@ module.exports = {
 		options = Uninvisible.currentImageOptions = options || {};
 
 		Uninvisible.container.style.display = 'block';
-		Uninvisible.imageDiv.style.opacity = 0;
+		Uninvisible.imageElement.style.opacity = 0;
 		Uninvisible.loadingSpinner.classList.remove('done-loading');
 
-		Uninvisible._setupImage(img, options, function(){
-			Uninvisible.imageDiv.style.opacity = 1;
+		Uninvisible._setupImage(img, function(cancel){
+			if(cancel === true) return;
+			Uninvisible._setupAdditionalImageLayers();
+			Uninvisible.imageElement.style.opacity = 1;
 			Uninvisible.loadingSpinner.classList.add('done-loading');
-			Uninvisible._open(options);
+			Uninvisible._open();
 
 			setTimeout(function(){
 					Uninvisible._turnOnTransitions();
@@ -28,14 +30,15 @@ module.exports = {
 			},1);
 
 			setTimeout(function(){
-				Uninvisible._expand(options);
+				Uninvisible._expand();
 			},10);
 		});
 
-		Uninvisible._open(options);
-		Uninvisible.setCaption(options);
+		Uninvisible._open();
+		Uninvisible.setCaption();
 		Uninvisible._renderView();
 		Uninvisible._setupCloseListener();
+
 		setTimeout(function(){
 			Uninvisible.container.style.opacity = 1;
 		},10);
@@ -66,6 +69,14 @@ module.exports = {
 		Uninvisible._setToImgLocation();
 	},
 
+	close: function(options){
+		if(this.isAnimating) return;
+
+		options = options || {};
+
+		this._close(options);
+	},
+
 	_close: function(options){
 		var Uninvisible = this;
 		Uninvisible._turnOnTransitions();
@@ -89,8 +100,8 @@ module.exports = {
 			document.body.style.cursor = 'auto';
 
 			Uninvisible.container.style.display = 'none';
-			Uninvisible.imageDiv.style.opacity = 0;
-			Uninvisible.imageDiv.style.backgroundPosition = '';
+			Uninvisible.imageElement.style.opacity = 0;
+			Uninvisible.imageElement.style.backgroundPosition = '';
 			Uninvisible.clearCaption();
 			Uninvisible.sourceElement = null;
 			Uninvisible.image = null;
@@ -111,24 +122,10 @@ module.exports = {
 		}
 	},
 
-	close: function(options){
-		if(this.isAnimating) return;
-
-		options = options || {};
-
-		this._close(options);
-	},
-
-	closeViewerImmediately: function(){
-		this.emit('close:start');
-		this.container.style.display = 'none';
-		this._reset();
-	},
-
-	_expand: function(options){
+	_expand: function(){
 		var Uninvisible = this;
 		var matrix = this.matrix;
-		options = options || {};
+		var options = Uninvisible.currentImageOptions;
 
 		var containerW = window.innerWidth,
 			containerH = window.innerHeight;
@@ -295,5 +292,13 @@ module.exports = {
 			width: position.width,
 			height: position.height
 		});
+	},
+
+	closeViewerImmediately: function(){
+		this.container.style.display = 'none';
+		this._removeView();
+		this.emit('close:immediately');
+		this.emit('close:start');
+		this._reset();
 	},
 };

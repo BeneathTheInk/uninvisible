@@ -1,11 +1,42 @@
 var _ = require('underscore');
 var closest = require("closest");
 var Touch = require('hammerjs');
+var Paper = require("../vendor/paper");
 
 module.exports = {
 	setOptions: function(options) {
 		_.extend(this.options, options);
 		return this;
+	},
+
+	_init: function(){
+		this.isDevice = !!('ontouchstart' in window);
+
+		this.sourceElement = null;
+		this.image = null;
+		this.imageUrl = null;
+		this.dimensions = {
+			initialScale: 1,
+			initialWidth: null,
+			initialHeight: null
+		};
+		this.isAnimating = false;
+		this.isOpen = false;
+		this.orientation = null;
+			// 0 = image is smaller than window
+			// 1 = image is contained within window
+			// 2 = image height smaller, horizontal width larger than window
+			// 3 = image width smaller, vertical height larger than window
+			// 4 = fullscreen horizontal
+			// 5 = fullscreen vertical
+			// 6 = fullscreen free scroll
+
+		this.matrix = new Paper.Matrix();
+
+		this._createView();
+		this._addTouch();
+		this._setupDocument();
+		this._turnOnContainerTransitions();
 	},
 
 	_setupDocument: function(doc) {
@@ -64,6 +95,8 @@ module.exports = {
 		function closeImg(e){
 			e.srcEvent.stopPropagation();
 			e.preventDefault();
+
+			if(!Uninvisible.isOpen) return Uninvisible.closeViewerImmediately();
 			Uninvisible.close.bind(Uninvisible)();
 		}
 
@@ -81,14 +114,14 @@ module.exports = {
 		var container = this.container = document.createElement('div');
 		container.classList.add('uninvisible-container');
 
-		var imageDiv = this.imageDiv = this.imageElement = document.createElement('div');
-    	imageDiv.classList.add('uninvisible-image');
+		var imageElement = this.imageElement = document.createElement('div');
+    	imageElement.classList.add('uninvisible-image');
 
-			imageDiv.style.webkitTransition = 'opacity .2s';
-			imageDiv.style.oTransition = 'opacity .2s';
-			imageDiv.style.mozTransition = 'opacity .2s';
-			imageDiv.style.msTransition = 'opacity .2s';
-			imageDiv.style.transition = 'opacity .2s';
+			imageElement.style.webkitTransition = 'opacity .2s';
+			imageElement.style.oTransition = 'opacity .2s';
+			imageElement.style.mozTransition = 'opacity .2s';
+			imageElement.style.msTransition = 'opacity .2s';
+			imageElement.style.transition = 'opacity .2s';
 
 		var captionContainer = this.captionContainer = document.createElement( 'figcaption' );
 		captionContainer.classList.add('caption-container');
@@ -104,7 +137,7 @@ module.exports = {
 		var loadingSpinner = this.loadingSpinner = document.createElement('div');
 		loadingSpinner.classList.add('spinner');
 
-		container.appendChild(imageDiv);
+		container.appendChild(imageElement);
 		container.appendChild(captionContainer);
 		container.appendChild(loadingSpinner);
 	},
@@ -117,27 +150,32 @@ module.exports = {
 		if(this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
 	},
 
-	_setupImage: function(img, options, cb){
+	_setupImage: function(img, cb){
 		var Uninvisible = this;
-		Uninvisible.mapPin.status = false;
-		Uninvisible.imageDiv.style.backgroundSize = "100%"; // reset to 100%, for after there was a map pin
+		Uninvisible.on('close:immediately', function(){
+			cb(true);
+		});
+
+
+		Uninvisible.imageElement.style.backgroundSize = "100%"; // reset to 100%, for after there were additional image layers..
+		Uninvisible.imageElement.style.backgroundPosition = "top left";
 
 		Uninvisible.sourceElement = img;
 
 		if(img.nodeType === 1 && img.dataset.uninvisibleTarget){
-			Uninvisible._setupImageFromTarget(img, options, cb);
+			Uninvisible._setupImageFromTarget(img, cb);
 		} else if(typeof img === 'string'){
-			Uninvisible._setupImageFromString(img, options, cb);
+			Uninvisible._setupImageFromString(img, cb);
 		} else if(img.nodeType === 1 && img.tagName !== 'IMG'){
-			Uninvisible._setupImageFromElement(img, options, cb);
+			Uninvisible._setupImageFromElement(img, cb);
 		} else if(img.nodeType === 1 && img.tagName === 'IMG') {
-			Uninvisible._setupImageFromImage(img, options, cb);
+			Uninvisible._setupImageFromImage(img, cb);
 		} else {
 			return null;
 		}
 	},
 
-	_setupImageFromString: function(img, options, cb){
+	_setupImageFromString: function(img, cb){
 		var Uninvisible = this;
 		var newImg;
 
@@ -146,14 +184,12 @@ module.exports = {
 		newImg = Uninvisible.image = new Image();
 		newImg.src = Uninvisible.imageUrl = Uninvisible.imageElement.src = img;
 
-		Uninvisible.imageDiv.style.backgroundImage = "url(" + newImg.src + ")";
+		Uninvisible.imageElement.style.backgroundImage = "url(" + newImg.src + ")";
 
-		newImg.addEventListener('load', function(){
-			cb();
-		});
+		newImg.addEventListener('load', cb);
 	},
 
-	_setupImageFromTarget: function(img, options, cb){
+	_setupImageFromTarget: function(img, cb){
 		var Uninvisible = this;
 
 		var target = document.getElementById(img.dataset.uninvisibleTarget);
@@ -163,7 +199,7 @@ module.exports = {
 
 		var dataUrl, newImg;
 
-		dataUrl = options.url || img.dataset.uninvisibleUrl || target.dataset.uninvisibleUrl || target.src;
+		dataUrl = Uninvisible.currentImageOptions.url || img.dataset.uninvisibleUrl || target.dataset.uninvisibleUrl || target.src;
 
 		if(dataUrl == null){
 			var imgCss = target.style.backgroundImage || window.getComputedStyle(target).backgroundImage;
@@ -182,41 +218,36 @@ module.exports = {
 		Uninvisible.imageElement.style.backgroundImage = "url('" + dataUrl + "')";
 		Uninvisible.image = newImg;
 
-		newImg.addEventListener('load', function(){
-			Uninvisible._setupMapPins(img);
-			cb();
-		});
+		newImg.addEventListener('load', cb);
 	},
 
-	_setupImageFromImage: function(img, options, cb){
+	_setupImageFromImage: function(img, cb){
 		var Uninvisible = this;
 		var newImg;
 
-		if(options.url || img.dataset.uninvisibleUrl){
+		if(Uninvisible.currentImageOptions.url || img.dataset.uninvisibleUrl){
 			newImg = new Image();
-			newImg.src = Uninvisible.imageUrl = Uninvisible.imageElement.src = options.url || img.dataset.uninvisibleUrl;
+			newImg.src = Uninvisible.imageUrl = Uninvisible.imageElement.src = Uninvisible.currentImageOptions.url || img.dataset.uninvisibleUrl;
 			Uninvisible.image = newImg;
 
-			Uninvisible.imageDiv.style.backgroundImage = "url(" + newImg.src + ")";
+			Uninvisible.imageElement.style.backgroundImage = "url(" + newImg.src + ")";
 
 			newImg.addEventListener('load', function(){
-				Uninvisible._setupMapPins(img);
 				cb();
 			});
 		} else {
-			Uninvisible.imageDiv.style.backgroundImage = "url(" + img.src + ")";
-		 Uninvisible.imageUrl =	Uninvisible.imageElement.src = img.src;
+			Uninvisible.imageElement.style.backgroundImage = "url(" + img.src + ")";
+		 	Uninvisible.imageUrl =	Uninvisible.imageElement.src = img.src;
 			Uninvisible.image = img;
-			Uninvisible._setupMapPins(img);
 			cb();
 		}
 	},
 
-	_setupImageFromElement: function(img, options, cb){
+	_setupImageFromElement: function(img, cb){
 		var Uninvisible = this;
 		var dataUrl, newImg;
 
-		dataUrl = options.url || img.dataset.uninvisibleUrl;
+		dataUrl = Uninvisible.currentImageOptions.url || img.dataset.uninvisibleUrl;
 
 		if(dataUrl == null && img.style.backgroundImage != null){
 			var imgCss = img.style.backgroundImage || window.getComputedStyle(img).backgroundImage;
@@ -235,10 +266,7 @@ module.exports = {
 		Uninvisible.imageElement.style.backgroundImage = "url('" + dataUrl + "')";
 		Uninvisible.image = newImg;
 
-		newImg.addEventListener('load', function(){
-			Uninvisible._setupMapPins(img);
-			cb();
-		});
+		newImg.addEventListener('load', cb);
 	},
 
 	destroy: function(){
@@ -262,16 +290,54 @@ module.exports = {
 		this.clearCaption();
 	},
 
-	_setupMapPins: function(img){
-			var Uninvisible = this;
+	_setupAdditionalImageLayers: function(){
+		var Uninvisible = this;
+		var img = Uninvisible.sourceElement;
+		var additions, imgData;
 
-			if(img.dataset.uninvisiblePin !== undefined){
-				Uninvisible.mapPin.status = true;
-				Uninvisible.imageDiv.style.backgroundImage = "url('Maps/pin.PNG'),url('" + Uninvisible.imageUrl + "')";
-				Uninvisible.mapPin.x = Uninvisible.pins[img.dataset.uninvisiblePin].x;
-				Uninvisible.mapPin.y = Uninvisible.pins[img.dataset.uninvisiblePin].y;
-				Uninvisible.imageDiv.style.backgroundPosition = Uninvisible.mapPin.x + "px " + Uninvisible.mapPin.y + "px,left top";
-				Uninvisible.imageDiv.style.backgroundSize = "5%, 100%";
+		if(img.dataset.uninvisibleAddition){
+			additions = [];
+
+			var images = img.dataset.uninvisibleAddition.split(',');
+
+			_.each(images, function(i){
+				imgData = i.split('|');
+
+				additions.push({
+					url: imgData[0],
+					x: imgData[1],
+					y: imgData[2],
+					size: imgData[3]
+				});
+			});
+		} else if(Uninvisible.currentImageOptions.addition || Uninvisible.options.addition){
+			imgData = Uninvisible.currentImageOptions.addition || Uninvisible.options.addition;
+			if(Array.isArray(imgData)){
+				additions = imgData;
+			} else if(typeof imgData === 'object'){
+				additions = [ imgData ];
 			}
+		}
+
+		if(!additions) return;
+
+		var bgImageCSS = "url('" + Uninvisible.imageUrl + "')";
+		var bgPositionCSS = "left top";
+		var bgSizeCSS = "100%";
+
+		_.each(additions, addImage);
+
+		function addImage(imageData){
+			if(!imageData.url) return;
+
+			bgImageCSS = "url('" + imageData.url + "')," + bgImageCSS;
+			bgPositionCSS = (imageData.x || '0px') + ' ' + (imageData.y || '0px') + ',' + bgPositionCSS;
+			bgSizeCSS = (imageData.size || 'initial') + ',' + bgSizeCSS;
+		}
+
+		var uImg = Uninvisible.imageElement;
+		uImg.style.backgroundImage = bgImageCSS;
+		uImg.style.backgroundPosition = bgPositionCSS;
+		uImg.style.backgroundSize = bgSizeCSS;
 	},
 };

@@ -143,8 +143,6 @@ module.exports = {
 		var Uninvisible = this;
 		Uninvisible.orientation = 6;
 
-		var checkPositioning = _.debounce(Uninvisible._checkImagePositioning.bind(Uninvisible), 20);
-
 		Uninvisible.container.classList.add('grab');
 
 		var onMouseDown, onMouseUp, onMouseMove,
@@ -158,7 +156,7 @@ module.exports = {
 		var onWheelEnd = _.debounce(function(){
 			origin = null;
 			isZooming = false;
-			checkPositioning();
+			Uninvisible._checkImagePositioning();
 		}, 20);
 
 		function onWheelZoom(e){
@@ -173,14 +171,13 @@ module.exports = {
 			var change = 1 - (e.deltaY * 0.001);
 
 			var curScale = matrix.decompose().scaling.y;
-			if(curScale * change < 0.95 || curScale * change > 50) return onWheelEnd();
+			if(curScale * change < 0.6 || curScale * change > 50) return Uninvisible._checkImagePositioning();
 
 			matrix.scale(change, origin);
 			Uninvisible._transformCSS(matrix);
 
 			onWheelEnd();
 		}
-
 
 		onMouseDown = function(e){
 			if(isZooming === true) return;
@@ -197,19 +194,11 @@ module.exports = {
 		onMouseMove = _.throttle(function(e){
 			if(isZooming === true) return;
 
-			// if(e.movementX !== undefined){
-			// 	moveX = e.movementX;
-			// 	moveY = e.movementY;
-			// } else if (e.mozMovementX !== undefined){
-			// 	moveX = e.mozMovementX;
-			// 	moveY = e.mozMovementY;
-			// } else {
-				moveX = e.screenX - curX;
-				moveY = e.screenY - curY;
+			moveX = e.screenX - curX;
+			moveY = e.screenY - curY;
 
-				curX = e.screenX;
-				curY = e.screenY;
-			// }
+			curX = e.screenX;
+			curY = e.screenY;
 
 			matrix.translate(moveX, moveY);
 
@@ -222,7 +211,7 @@ module.exports = {
 
 			isDragging = false;
 
-			checkPositioning();
+			Uninvisible._checkImagePositioning();
 		};
 
 		Uninvisible.container.addEventListener('mousedown', onMouseDown);

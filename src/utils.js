@@ -8,12 +8,6 @@ module.exports = {
 		if(p.left || p.left === 0) img.style.left = p.left + 'px';
 		if(p.width) img.style.width = p.width + 'px';
 		if(p.height) img.style.height = p.height + 'px';
-
-		if(this.mapPin.status){
-			this.mapPin.sX = (this.mapPin.x - 100) * (p.width / 4300);
-	    this.mapPin.sY = (this.mapPin.y - 70) * (p.height / 2950);
-	    this.imageDiv.style.backgroundPosition = this.mapPin.sX + "px " + this.mapPin.sY + "px,left top";
-		}
 	},
 
 	_transformCSS: function(t){
