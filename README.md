@@ -24,20 +24,19 @@ You can use Uninvisible without adding any custom Javascript by simply adding `d
 <img data-uninvisible data-uninvisible-url="path/to/imageToOpen.img" src="path/to/image.img" />
 ```
 
-If the element is not an image, or if you'd like to open up a different image than the original image, you can add `data-uninvisible-url` and set it to the new image to open.
+If the element is not an image, or if you'd like to open up a different image than the original image, you can add `data-uninvisible-url` for the new image to open.
 
-```
+```html
 <a href="#" data-uninvisible data-uninvisible-url="path/to/image" data-uninvisible-title="This image was opened from an anchor tag!">Click here to see it!</a>
 ```
 
+For a nifty target image for the mouse cursor when hovering over the target element, add the class `uninvisible` to the element.
 
 ## Methods
 
 ### UnInVisible.open(img, options)
 
-`img` is the element from which UnInVisible is to be expanded from. You can pass in any type of element. If it's not an image element, or if you want to open a different image, be sure to either add the attribute `data-uninvisible-url="/url/to/source.img"` directly to the element, or pass in the url with options.
-
-You also have the option to pass in the url string as `img`, which will open the image without zooming from an element.
+`img` is either the element from which UnInVisible is to be expanded from, or a url string. You can pass in any type of element. If it's not an image element, or if you want to open a different image, be sure to either add the attribute `data-uninvisible-url="/url/to/source.img"` directly to the element, or pass in the url with options.
 
 options:
 	- url - *url of image to view. Allows for a different image to be opened (i.e. thumbnails -> larger image), or allows opening from non-image elements.*
@@ -45,7 +44,7 @@ options:
   - text - *caption text*
 	- onOpen - *open callback*
 	- onClose - *close callback*
-	- zoom - *'free', 'contain', or 'default'. On desktop, 'free' will set the image to its natural width and height, and will scroll on the x axis if the image is wider than the window, and scroll on the y axis if the image is taller than the window. 'contain' will prevent scrolling and set the image to contain. 'default' behaviour is to scroll along the broadest axis, with the image contained on the smaller axis.*
+	- zoom - *'free', 'contain', or 'default'. On desktop, 'free' will set the image to its natural width and height, and will scroll in any direction that is larger than the window- on the x axis if the image is wider than the window, and scroll on the y axis if the image is taller than the window. 'contain' will prevent scrolling and set the image to contain. 'default' behavior is to scroll along the broadest axis, with the image contained on the smaller axis. If the user zooms with the mousewheel on desktop or by pinching on mobile, the image then moves via click and drag.*
 
 Options can also be added directly in your HTML as data attributes.
 
@@ -54,10 +53,11 @@ Options can also be added directly in your HTML as data attributes.
 Images will be not be expanded further than their natural width and height. If you want a deeper zoom, you'll need to increase the size of your original image.
 
 **Example**
+```html
+	<img id="myImg" src="/path/to/thumbnail.img" data-uninvisible="true" data-uninvisible-url="/path/to/large-image.img" data-uninvisible-title="This is an image." />
+	<button id="btn" class="uninvisible" data-uninvisible-url="/path/to/image.img">Open Image!</button>
+```
 ```javascript
-	<img id="myImg" src="/path/to/thumbnail.img" data-uninvisible-url="/path/to/large-image.img" data-uninvisible-title="This is an image." />
-	<button id="btn" data-uninvisible-url="/path/to/image.img">Open Image!</button>
-
 	uninvisible.open(myImg);
 
 	uninvisible.open(btn);
@@ -81,7 +81,6 @@ options:
 ### uninvisible.setCaption()
 
 ```javascript
-
 uninvisible.setCaption({
 	title: 'Caption Title',
 	text: 'Text to go along with the image.'
@@ -96,6 +95,31 @@ uninvisible.setCaption({
 - open - *Open animation complete*
 - close:start - *Start of close animation*
 - close - *Close complete*
+
+## Multiple Layered images
+
+It is possible to add additional images to the view.
+
+When passing in options, you may pass in an object with `url`, `x` coordinate, `y` coordinate, and `size`. You may also pass in an array of image objects for multiple additional images. The additional images will be layered in order so that the last one will become the top layer.
+
+```javascript
+	var options = {
+		addition: {
+			url: '/image/url.img',
+			x: '75px',
+			y: '25%',
+			size: '50px'
+		}
+	};
+
+	Uninvisible.open(image, options);
+```
+
+Additional images can also be added with `data-uninvisible-addition`. Images are comma separated, with values separated by `|`. The order of values is `url|x|y|size`.
+
+```html
+<img src="./images/4.JPG" data-uninvisible data-uninvisible-addition="./images/layer-one.png|150px|150px|7%,./images/top-layer.jpeg|80%|80%|15%" />
+```
 
 ## Cursor icons
 

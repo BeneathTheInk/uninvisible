@@ -3,6 +3,9 @@ var EventEmitter = require('events');
 var util = require('util');
 var domready = require("domready");
 
+// TODO preloadImages?
+// TODO correct image positioning within iframes
+
 function UnInVisible(options) {
 	this.options = _.extend(_.clone(UnInVisible.defaults), (options || {}));
 	domready(this._init.bind(this));
@@ -27,8 +30,3 @@ _.extend(UnInVisible.prototype,
 );
 
 module.exports = new UnInVisible();
-
-	// TODO preloadImages?
-	// preloadImages: function(){
-	//
-	// }
