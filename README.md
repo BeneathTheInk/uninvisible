@@ -6,7 +6,7 @@ UnInVisible creates a slick and beautiful image viewing experience. This is done
 
 ## Quick Start
 
-UnInVisible is really easy to use. Just require UnInVisible or add the script to your document and add the CSS to your stylesheet. The Javascript looks like this:
+UnInVisible is really easy to use. Require UnInVisible or add the script to your document. The Javascript looks like this:
 
 ```javascript
 var UnInVisible = require('uninvisible');
@@ -15,10 +15,15 @@ var UnInVisible = require('uninvisible');
 
 var img = document.getElementById('my-img');
 uninvisible.open(img);
-
 ```
 
-You can use Uninvisible without adding any custom Javascript by simply adding `data-uninvisible` to the element you would like to open.
+You'll need to either add the CSS to your stylesheet, or call `UnInVisible.setupCSS()`:
+
+```html
+<script type="text/javascript"> UnInVisible.setupCSS(); </script>
+```
+
+You can use Uninvisible without adding any custom Javascript by simply adding `data-uninvisible` to the element you would like to open. UnInVisible setups up a click listener on the document, checking to see if the click is on an element or a child of an element with `data-uninvisible`. If you would like more control and handle the opening yourself, you can remove this click listener by calling `UnInVisible.setOptions({disableClick: true})`.
 
 ```javascript
 <img data-uninvisible data-uninvisible-url="path/to/imageToOpen.img" src="path/to/image.img" />
@@ -77,6 +82,7 @@ options:
 options:
 	- animationSpeed - *open/close speed, defaults to 400*
 	- trackSpeed - *Mouse/touch floaty move speed. a number between 0 and 1, defaults to 0.085*
+	- disableClick - *Removes UnInVisible's default click listener on the document, looking for 'data-uninvisible'*
 
 ### uninvisible.setCaption()
 
@@ -86,6 +92,10 @@ uninvisible.setCaption({
 	text: 'Text to go along with the image.'
 });
 ```
+
+### UnInVisible.setupCSS()
+
+If you haven't added the CSS to your stylesheets, use this to tell UnInVisible to create the style sheet for you.
 
 ### destroy()
 
