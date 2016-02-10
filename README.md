@@ -44,12 +44,12 @@ For a nifty target image for the mouse cursor when hovering over the target elem
 `img` is either the element from which UnInVisible is to be expanded from, or a url string. You can pass in any type of element. If it's not an image element, or if you want to open a different image, be sure to either add the attribute `data-uninvisible-url="/url/to/source.img"` directly to the element, or pass in the url with options.
 
 options:
-	- url - *url of image to view. Allows for a different image to be opened (i.e. thumbnails -> larger image), or allows opening from non-image elements.*
+  - url - *url of image to view. Allows for a different image to be opened (i.e. thumbnails -> larger image), or allows opening from non-image elements.*
   - title - *caption title*
   - text - *caption text*
-	- onOpen - *open callback*
-	- onClose - *close callback*
-	- zoom - *'free', 'contain', or 'default'. On desktop, 'free' will set the image to its natural width and height, and will scroll in any direction that is larger than the window- on the x axis if the image is wider than the window, and scroll on the y axis if the image is taller than the window. 'contain' will prevent scrolling and set the image to contain. 'default' behavior is to scroll along the broadest axis, with the image contained on the smaller axis. If the user zooms with the mousewheel on desktop or by pinching on mobile, the image then moves via click and drag.*
+  - onOpen - *open callback*
+  - onClose - *close callback*
+  - zoom - *'free', 'contain', or 'default'. On desktop, 'free' will set the image to its natural width and height, and will scroll in any direction that is larger than the window- on the x axis if the image is wider than the window, and scroll on the y axis if the image is taller than the window. 'contain' will prevent scrolling and set the image to contain. 'default' behavior is to scroll along the broadest axis, with the image contained on the smaller axis. If the user zooms with the mousewheel on desktop or by pinching on mobile, the image then moves via click and drag.*
 
 Options can also be added directly in your HTML as data attributes.
 
@@ -110,7 +110,7 @@ If you haven't added the CSS to your stylesheets, use this to tell UnInVisible t
 
 It is possible to add additional images to the view.
 
-When passing in options, you may pass in an object with `url`, `x` coordinate, `y` coordinate, and `size`. You may also pass in an array of image objects for multiple additional images. The additional images will be layered in order so that the last one will become the top layer.
+When passing in options, add an `addition` key with a value of an object containing the `url`, `x` coordinate, `y` coordinate, and `size` of the image to add. You may also pass in an array of image objects for multiple additional images. The additional images will be layered in order so that the last one will become the top layer.
 
 ```javascript
 	var options = {

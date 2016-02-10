@@ -1,28 +1,26 @@
-module.exports = {
-	setCaption: function(){
-		var Uninvisible = this;
+export function setCaption(){
+	var Uninvisible = this;
 
-		var title = Uninvisible.currentImageOptions.title || (Uninvisible.sourceElement != null ? Uninvisible.sourceElement.dataset.uninvisibleTitle : null);
-		var text = Uninvisible.currentImageOptions.text || (Uninvisible.sourceElement != null ?  Uninvisible.sourceElement.dataset.uninvisibleText : null);
+	var title = Uninvisible.currentImageOptions.title || (Uninvisible.sourceElement != null ? Uninvisible.sourceElement.dataset.uninvisibleTitle : null);
+	var text = Uninvisible.currentImageOptions.text || (Uninvisible.sourceElement != null ?  Uninvisible.sourceElement.dataset.uninvisibleText : null);
 
-		if(title || text) Uninvisible.captionContainer.style.display = 'block';
-		if(title && title.trim().length){
-			Uninvisible.captionTitle.innerHTML = title;
-			Uninvisible.captionTitle.style.display = 'block';
-		}
-		if(text && text.trim().length){
-			Uninvisible.captionText.innerHTML = text;
-			Uninvisible.captionText.style.display = 'block';
-		}
-	},
+	if(title || text) Uninvisible.captionContainer.style.display = 'block';
+	if(title && title.trim().length){
+		Uninvisible.captionTitle.innerHTML = title;
+		Uninvisible.captionTitle.style.display = 'block';
+	}
+	if(text && text.trim().length){
+		Uninvisible.captionText.innerHTML = text;
+		Uninvisible.captionText.style.display = 'block';
+	}
+}
 
-	clearCaption: function(){
-		this.captionContainer.style.display = 'none';
+export function clearCaption(){
+	this.captionContainer.style.display = 'none';
 
-		this.captionTitle.style.display = 'none';
-		this.captionTitle.innerHTML = '';
+	this.captionTitle.style.display = 'none';
+	this.captionTitle.innerHTML = '';
 
-		this.captionText.style.display = 'none';
-		this.captionText.innerHTML = '';
-	},
-};
+	this.captionText.style.display = 'none';
+	this.captionText.innerHTML = '';
+}
