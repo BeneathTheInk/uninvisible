@@ -155,7 +155,7 @@ export function _initGrabZoom(){
 		origin = null;
 		isZooming = false;
 		Uninvisible._checkImagePositioning();
-	}, 20);
+	}, 600);
 
 	function onWheelZoom(e){
 		e.preventDefault();
@@ -215,7 +215,9 @@ export function _initGrabZoom(){
 	Uninvisible.container.addEventListener('mousedown', onMouseDown);
 	Uninvisible.container.addEventListener('mouseup', onMouseUp);
 	Uninvisible.container.addEventListener('mouseleave', onMouseUp);
-	document.addEventListener('wheel', onWheelZoom);
+
+	var throttledOnWheelZoom = _.throttle(onWheelZoom, 20);
+	document.addEventListener('wheel', throttledOnWheelZoom);
 
 	let onCloseView = function(){
 		Uninvisible.removeListener('close:start', onCloseView);
@@ -223,7 +225,7 @@ export function _initGrabZoom(){
 		Uninvisible.container.removeEventListener('mousedown', onMouseDown);
 		Uninvisible.container.removeEventListener('mouseup', onMouseUp);
 		Uninvisible.container.removeEventListener('mouseleave', onMouseUp);
-		document.removeEventListener('wheel', onWheelZoom);
+		document.removeEventListener('wheel', throttledOnWheelZoom);
 		Uninvisible.container.classList.remove('grabbing');
 	};
 
