@@ -3,8 +3,12 @@ var EventEmitter = require('events');
 var util = require('util');
 var domready = require("domready");
 
-// TODO preloadImages?
-// TODO correct image positioning within iframes
+// TODO rebuild animation speed options
+// TODO fix weird momentum scrolling
+// TODO fix resizing when scrolling
+// TODO customizable speeds, colors, cursor,..
+// TODO slideshow
+
 
 function UnInVisible(options) {
 	this.options = _.extend(_.clone(UnInVisible.defaults), (options || {}));
