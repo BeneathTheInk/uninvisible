@@ -1,5 +1,7 @@
 # UnInVisible
 
+[![Build Status](https://travis-ci.org/BeneathTheInk/uninvisible.svg?branch=master)](https://travis-ci.org/BeneathTheInk/uninvisible)
+
 ## What it Does
 
 UnInVisible creates a slick and beautiful image viewing experience. This is done by adding a smooth fade to and from full screen with a floaty scroll while viewing.

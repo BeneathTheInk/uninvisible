@@ -1,6 +1,5 @@
 {
   "name": "uninvisible",
-  "version": "0.3.1",
   "private": false,
   "description": "A slick image viewing library.",
   "author": "Beneath the Ink <info@beneaththeink.com>",
@@ -23,22 +22,18 @@
     "underscore": "~1.8.3"
   },
   "scripts": {
-    "prepublish": "gulp"
+    "prepublish": "npm run lint && npm run build",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post",
+    "lint": "jshint src/*.js uninvisible.js",
+    "build": "gulp"
   },
   "devDependencies": {
     "babel-preset-es2015": "~6.1.18",
-    "babelify": "~7.2.0",
     "browserify": "~12.0.1",
-    "grunt": "~0.4.5",
-    "grunt-browserify": "~3.6.0",
-    "grunt-cli": "~0.1.13",
-    "grunt-contrib-clean": "~0.6.0",
-    "grunt-contrib-copy": "~0.8.0",
-    "grunt-contrib-uglify": "~0.8.1",
-    "grunt-sass": "^1.0.0",
-    "grunt-wrap2000": "~0.1.0",
     "gulp": "~3.9.0",
     "gulp-babel": "~6.1.1",
+    "jshint": "~2.9.1",
+    "semantic-release": "^4.3.5",
     "vinyl-buffer": "~1.0.0",
     "vinyl-source-stream": "~1.1.0"
   }

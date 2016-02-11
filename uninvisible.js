@@ -10,6 +10,13 @@ import * as animations from './animations.js';
 import * as caption from './caption.js';
 import * as utils from './utils.js';
 
+// TODO rebuild animation speed options
+// TODO fix weird momentum scrolling
+// TODO fix resizing when scrolling
+// TODO customizable speeds, colors, cursor,..
+// TODO slideshow
+
+
 class UnInVisible extends EventEmitter {
 	constructor(options) {
 		super();

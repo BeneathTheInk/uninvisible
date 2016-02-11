@@ -10,7 +10,6 @@
 
 const gulp = require('gulp');
 const babel = require('gulp-babel');
-const babelify= require('babelify');
 const browserify = require('browserify');
 const source = require('vinyl-source-stream');
 const buffer = require('vinyl-buffer');
