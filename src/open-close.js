@@ -135,57 +135,42 @@ export function _expand(){
 	var scale, scaledHeight, scaledWidth;
 
 	if(!Uninvisible.isDevice){
-		if(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain"){
-			Uninvisible.orientation = 1;
-			if (imgW < containerW && imgH < containerH){
-				if(imgW / imgH >= containerW / containerH){
-					setToNaturalWidth(true);
-				} else {
-					setToNaturalHeight(true);
-				}
+		if(isInContainMode()){
+			if (isSmallerThanWindow()){
+				if(isHorizontal()) setToNaturalWidth(true);
+				else setToNaturalHeight(true);
 			} else {
-				if(imgW / imgH >= containerW / containerH){
-					setToContainHorizontal(false);
-				} else {
-					setToContainVertical(false);
-				}
+				if(isHorizontal()) setToContainHorizontal(false);
+				else setToContainVertical(false);
 			}
-		} else if (imgW < containerW || imgH < containerH){
-			if(imgW / imgH >= containerW / containerH){
-				Uninvisible.orientation = imgW > containerW ? 2 : 0; //..LARGER HORIZONTALLY or smaller than window
-				setToNaturalWidth(true);
-			} else {
-				Uninvisible.orientation = imgH > containerH ? 3 : 0; //..LARGER VERTICALLY or smaller than window
-				setToNaturalHeight(true);
-			}
-		} else if (options.zoom === "free" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "free") || Uninvisible.options.zoom === "free"){
-			Uninvisible.orientation = 6;
-			if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-				setToNaturalWidth(true);
-		 } else { //..CONTAINED VERTICAL
-			 setToNaturalHeight(true);
-		 }
-		} else if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
-			Uninvisible.orientation = 4;
+		} else if (isPartiallySmallerThanWindow() || isInFreeMode()){
+			if(isHorizontal()) setToNaturalWidth(true);
+			else setToNaturalHeight(true);
+		} else if(isHorizontal()){
 			setToContainHorizontal(true);
-	 } else { //..CONTAINED VERTICAL
-		 Uninvisible.orientation = 5;
-		 setToContainVertical(true);
-	 }
- } else { // DEVICE
+	 	} else {
+			 setToContainVertical(true);
+		}
+ 	} else { // DEVICE
 		scale = Uninvisible.dimensions.initialScale = 1;
 		if(options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain"){
-			Uninvisible.orientation = 1;
+			// Uninvisible.orientation = 1;
 		} else {
-			Uninvisible.orientation = 6;
+			// Uninvisible.orientation = 6;
 		}
 
-		if(imgW / imgH > containerW / containerH){ //..CONTAINED HORIZONTAL
+		if(isHorizontal()){ //..CONTAINED HORIZONTAL
 			setToContainHorizontal(false);
-	 } else { //..CONTAINED VERTICAL
-		 setToContainVertical(false);
-	 }
+	 	} else { //..CONTAINED VERTICAL
+			setToContainVertical(false);
+	 	}
 	}
+
+	function isSmallerThanWindow(){ return imgW < containerW && imgH < containerH; }
+	function isHorizontal(){ return imgW / imgH >= containerW / containerH; }
+	function isPartiallySmallerThanWindow(){ return imgW < containerW || imgH < containerH; }
+	function isInFreeMode(){ return options.zoom === "free" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "free") || Uninvisible.options.zoom === "free"; }
+	function isInContainMode(){ return options.zoom === "contain" || (Uninvisible.sourceElement && Uninvisible.sourceElement.dataset.uninvisibleZoom === "contain") || Uninvisible.options.zoom === "contain"; }
 
 	function setToNaturalWidth(transform){
 		scaledHeight = Uninvisible.dimensions.initialHeight = (containerW / imgW) * imgH;
@@ -245,17 +230,17 @@ export function _expand(){
 		Uninvisible.dimensions.initialHeight = containerH;
 
 		Uninvisible._setImagePosition({
-		 left: (containerW - scaledWidth) / 2,
-		 top: 0,
-		 width: scaledWidth,
-		 height: containerH
-	 });
+			left: (containerW - scaledWidth) / 2,
+			top: 0,
+			width: scaledWidth,
+			height: containerH
+		});
 
-	 if(transform){
-	 	scale = Uninvisible.dimensions.initialScale = containerW / scaledWidth;
+		if(transform){
+		 	scale = Uninvisible.dimensions.initialScale = containerW / scaledWidth;
 			matrix.scale(scale);
 			Uninvisible._transformCSS([ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ]);
-	 }
+		}
 	}
 }
 

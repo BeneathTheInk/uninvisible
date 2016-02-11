@@ -34,7 +34,7 @@ export function _initTrackingDesktop(){
 	}
 
 	let followMouse = _.throttle(function(e){
-		if(Uninvisible.orientation < 2) return;
+		if(curScale <= 1) return;// if(Uninvisible.orientation < 2) return;
 
 		xDestPercent = (e.clientX / window.innerWidth) * 100;
 		yDestPercent = (e.clientY / window.innerHeight) * 100;
@@ -48,45 +48,55 @@ export function _initTrackingDesktop(){
 	const SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
 	function positionImage(){
 		curScale = matrix.decompose().scaling.y;
-		switch(Uninvisible.orientation){
-			case 0:
-			case 1:
-				break;
-			// HORIZONTAL
-			case 2:
-			case 4:
-				positionX();
-				break;
-			// VERTICAL
-			case 3:
-			case 5:
-				positionY();
-				break;
-			// FREE SCROLL
-			case 6:
-				positionX();
-				positionY();
-				break;
-			}
+		// switch(6){//switch(Uninvisible.orientation){
+		// 	case 0:
+		// 	case 1:
+		// 		break;
+		// 	// HORIZONTAL
+		// 	case 2:
+		// 	case 4:
+		// 		positionX();
+		// 		break;
+		// 	// VERTICAL
+		// 	case 3:
+		// 	case 5:
+		// 		positionY();
+		// 		break;
+		// 	// FREE SCROLL
+		// 	case 6:
+		// 		positionX();
+		// 		positionY();
+		// 		break;
+		// 	}
 
-			matrix.translate(x, y);
-			Uninvisible._transformCSS(matrix);
+		positionX();
+		positionY();
+
+		matrix.translate(x, y);
+		Uninvisible._transformCSS(matrix);
 	}
 
 	function positionX(){
+		scaledWidth = imgW * curScale;
+
+		// TODO enable slide and invert when smaller than window
+		if(scaledWidth < window.innerWidth) return;
+
 		xPercent = xPercent + ((xDestPercent - xPercent) * SLIDE_SPEED);
 		if(xPercent < 0) xDestPercent = (xDestPercent * SLIDE_SPEED);
 		if(xPercent > 100) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
 
-		if(xPercent < 50){
+		if(xPercent < 50){// || scaledWidth < window.innerWidth
 			expandByX = (50 - xPercent) / 100 * window.innerWidth / 2;
 		} else {
 			expandByX = -(50 - (100 - xPercent)) / 100 * window.innerWidth / 2;
 		}
 
-		scaledWidth = imgW * curScale;
-
 		newTx = (window.innerWidth / 2) - (((scaledWidth + expandByX) / 2) - ((scaledWidth - window.innerWidth) * (xPercent / 100)));
+
+// TODO invert slide when smaller than window
+// if(scaledWidth < window.innerWidth) newTx = 100 - newTx; //
+
 		newTx /= curScale;
 
 		x = currTx - newTx;
@@ -95,6 +105,10 @@ export function _initTrackingDesktop(){
 	}
 
 	function positionY(){
+		scaledHeight = imgH * curScale;
+		// TODO enable and invert slide when smaller than window
+		if(scaledHeight < window.innerHeight) return;
+
 		yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
 		if(yPercent < 0) yDestPercent = (yDestPercent * SLIDE_SPEED);
 		if(yPercent > 100) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
@@ -105,7 +119,6 @@ export function _initTrackingDesktop(){
 			expandByY = -(50 - (100 - yPercent)) / 100 * window.innerHeight / 2;
 		}
 
-		scaledHeight = imgH * curScale;
 		newTy = (window.innerHeight / 2) - (((scaledHeight + expandByY) / 2) - ((scaledHeight - window.innerHeight) * (yPercent / 100)));
 		newTy /= curScale;
 
@@ -139,7 +152,7 @@ export function _initTrackingDesktop(){
 
 export function _initGrabZoom(){
 	let Uninvisible = this;
-	Uninvisible.orientation = 6;
+	// Uninvisible.orientation = 6;
 
 	Uninvisible.container.classList.add('grab');
 
@@ -167,9 +180,13 @@ export function _initGrabZoom(){
 		}
 
 		let change = 1 - (e.deltaY * 0.001);
-
 		let curScale = matrix.decompose().scaling.y;
-		if(curScale * change < 0.6 || curScale * change > 50) return Uninvisible._checkImagePositioning();
+		// console.log(change, curScale);
+
+		if(curScale * change < Math.min(0.6, Uninvisible.dimensions.initialScale) || curScale * change > 10){
+			return;
+			// return Uninvisible._checkImagePositioning();
+		}
 
 		matrix.scale(change, origin);
 		Uninvisible._transformCSS(matrix);
