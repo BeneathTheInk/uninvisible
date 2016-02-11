@@ -1,27 +1,20 @@
-// var gulp = require("gulp");
-// var babel = require("gulp-babel");
-//
-// gulp.task("default", function () {
-//   return gulp.src("./uninvisible.js")
-//     .pipe(babel())
-//     .pipe(gulp.dest("dist/compiled"));
-// });
 'use strict';
+// TODO sass and copy css into dist
 
-const gulp = require('gulp');
-const babel = require('gulp-babel');
-const browserify = require('browserify');
-const source = require('vinyl-source-stream');
-const buffer = require('vinyl-buffer');
-const fs = require("fs");
+var gulp = require('gulp');
+var babel = require('gulp-babel');
+var browserify = require('browserify');
+var source = require('vinyl-source-stream');
+var buffer = require('vinyl-buffer');
+var minify = require('gulp-minify');
 
+gulp.task('babelifySource', babelifySource);
+gulp.task('babelifyIndex', babelifyIndex);
+gulp.task('bundle', ['babelifySource', 'babelifyIndex'], bundle);
+gulp.task('default', ['bundle']);
 
-gulp.task('bab', bab);
-gulp.task('babel', babelate);
-gulp.task('default', ['bab', 'babel'], bundle);
-
-function bab(done){
-    let stream = gulp.src('./src/*.js')
+function babelifySource(done){
+    var stream = gulp.src('./src/*.js')
         .pipe(babel({
             presets: ['es2015']
         }))
@@ -29,14 +22,14 @@ function bab(done){
 	stream.on('end', done);
 }
 
-function babelate(done){
-    let stream = gulp.src('./uninvisible.js')
+function babelifyIndex(done){
+    var stream = gulp.src('./uninvisible.js')
         .pipe(babel({
             presets: ['es2015']
         }))
         .pipe(gulp.dest('dist/compiled'));
 	stream.on('end', done);
-};
+}
 
 function bundle(done) {
   var browserifyOptions = {
@@ -50,6 +43,7 @@ function bundle(done) {
   var stream = b.bundle()
     .pipe(source('uninvisible.js'))
     .pipe(buffer())
+    .pipe(minify())
     .pipe(gulp.dest('dist'));
 
     stream.on('end', done);
