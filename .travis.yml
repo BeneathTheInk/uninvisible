@@ -26,5 +26,5 @@ env:
 after_success:
   - npm run semantic-release
 branches:
-  except:
+  only:
     - "master"
