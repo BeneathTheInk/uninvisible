@@ -160,7 +160,7 @@ export function _initGrabZoom(){
 	function onWheelZoom(e){
 		e.preventDefault();
 
-		if(isDragging) return isZooming = false;
+		if(isDragging) return (isZooming = false);
 
 		isZooming = true;
 
