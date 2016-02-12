@@ -25,7 +25,7 @@
   "scripts": {
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "lint": "jshint src/*.js uninvisible.js",
-    "build": "gulp",
+    "build": "gulp && node-sass uninvisible.scss > dist/uninvisible.css",
     "test": "gulp && browserify index.js --basedir test/ --debug | tape-run"
   },
   "devDependencies": {
