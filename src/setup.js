@@ -8,9 +8,8 @@ let Matrix = require('./matrix-lib').Matrix;
 export function setOptions(options) {
 	extend(this.options, options);
 
-	if(options.disableClick){
-		this.trigger('disableclick');
-	}
+	if(options.disableClick) this.disableClick();
+	if(options.enableClick) this.enableClick();
 	return this;
 }
 
@@ -45,8 +44,7 @@ export function _init(){
 }
 
 export function _setupDocument(doc) {
-	if(doc) this.options.document = doc;
-	doc = doc || document;
+	this.options.document = doc || document;
 
 	// find all links in the document and add click events
 	var Uninvisible = this;
@@ -63,11 +61,12 @@ export function _setupDocument(doc) {
 
 	window.addEventListener("resize", onWindowResize);
 
-	if(this.options.disableClick !== true) Uninvisible.addDocumentClickListener(doc);
+	if(this.options.disableClick !== true) Uninvisible.enableClick();
 }
 
-export function addDocumentClickListener(doc) {
+export function enableClick() {
 	let Uninvisible = this;
+	let doc = Uninvisible.options.document;
 
 	doc.addEventListener("click", onClick);
 
@@ -86,6 +85,10 @@ export function addDocumentClickListener(doc) {
 			Uninvisible.open(target);
 		}
 	}
+}
+
+export function disableClick() {
+	this.trigger('disableclick');
 }
 
 export function _addTouch(){
