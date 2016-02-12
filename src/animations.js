@@ -137,7 +137,6 @@ export function _initTrackingDesktop(){
 
 export function _initGrabZoom(){
 	let Uninvisible = this;
-	// Uninvisible.orientation = 6;
 
 	Uninvisible.container.classList.add('grab');
 
@@ -151,6 +150,8 @@ export function _initGrabZoom(){
 	let curScale = matrix.decompose().scaling.y;
 
 	let onWheelEnd = debounce(function(){
+		if(!isZooming) return;
+
 		origin = null;
 		isZooming = false;
 		Uninvisible._checkImagePositioning();
@@ -159,19 +160,18 @@ export function _initGrabZoom(){
 	function onWheelZoom(e){
 		e.preventDefault();
 
+		if(isDragging) return isZooming = false;
+
 		isZooming = true;
 
-		if(!origin) {
-			origin = Uninvisible._screenToImage(matrix, e.clientX, e.clientY);
-		}
+		if(!origin) origin = Uninvisible._screenToImage(matrix, e.clientX, e.clientY);
 
 		let change = 1 - (e.deltaY * 0.001);
 
 		curScale = matrix.decompose().scaling.y;
 
-		if(curScale * change < Math.min(0.6, Uninvisible.dimensions.initialScale) || curScale * change > 10){
+		if(curScale * change < Math.min(0.6, Uninvisible.dimensions.initialScale) || curScale * change > 8){
 			return;
-			// return Uninvisible._checkImagePositioning();
 		}
 
 		matrix.scale(change, origin);
@@ -182,10 +182,11 @@ export function _initGrabZoom(){
 	}
 
 	onMouseDown = function(e){
-		if(isZooming === true) return;
+		// if(isZooming === true) return;
 
 		Uninvisible.container.classList.add('grabbing');
 		isDragging = true;
+		isZooming = false;
 
 		curX = e.screenX;
 		curY = e.screenY;
