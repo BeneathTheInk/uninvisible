@@ -1,5 +1,6 @@
 import raf from 'raf';
-import * as _  from 'underscore';
+import throttle from 'lodash/throttle';
+import debounce from 'lodash/debounce';
 
 export function _initTrackingDesktop(){
 	let Uninvisible = this;
@@ -33,7 +34,7 @@ export function _initTrackingDesktop(){
 		curScale = matrix.decompose().scaling.y;
 	}
 
-	let followMouse = _.throttle(function(e){
+	let followMouse = throttle(function(e){
 		if(curScale <= 1) return;// if(Uninvisible.orientation < 2) return;
 
 		xDestPercent = (e.clientX / window.innerWidth) * 100;
@@ -41,7 +42,7 @@ export function _initTrackingDesktop(){
 	}, 1000/30);
 
 	function onWheelZoom(){
-		Uninvisible.emit('stoptracking');
+		Uninvisible.trigger('stoptracking');
 		Uninvisible._initGrabZoom();
 	}
 
@@ -138,8 +139,8 @@ export function _initTrackingDesktop(){
 	}
 
 	let onCloseView = function(){
-		Uninvisible.removeListener('close:start', onCloseView);
-		Uninvisible.removeListener('stoptracking', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
+		Uninvisible.off('stoptracking', onCloseView);
 		removeEventListener('mousemove', followMouse);
 		document.removeEventListener('wheel', onWheelZoom);
 		curX = curY = 0;
@@ -164,7 +165,7 @@ export function _initGrabZoom(){
 
 	let origin, moveX, moveY, curX, curY;
 
-	let onWheelEnd = _.debounce(function(){
+	let onWheelEnd = debounce(function(){
 		origin = null;
 		isZooming = false;
 		Uninvisible._checkImagePositioning();
@@ -206,7 +207,7 @@ export function _initGrabZoom(){
 		Uninvisible.container.addEventListener('mousemove', onMouseMove);
 	};
 
-	onMouseMove = _.throttle(function(e){
+	onMouseMove = throttle(function(e){
 		if(isZooming === true) return;
 
 		moveX = e.screenX - curX;
@@ -233,11 +234,11 @@ export function _initGrabZoom(){
 	Uninvisible.container.addEventListener('mouseup', onMouseUp);
 	Uninvisible.container.addEventListener('mouseleave', onMouseUp);
 
-	var throttledOnWheelZoom = _.throttle(onWheelZoom, 20);
+	var throttledOnWheelZoom = throttle(onWheelZoom, 20);
 	document.addEventListener('wheel', throttledOnWheelZoom);
 
 	let onCloseView = function(){
-		Uninvisible.removeListener('close:start', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
 		Uninvisible.container.removeEventListener('mousemove', onMouseMove);
 		Uninvisible.container.removeEventListener('mousedown', onMouseDown);
 		Uninvisible.container.removeEventListener('mouseup', onMouseUp);
@@ -287,7 +288,7 @@ export function _initTrackingTouch(){
 		origin = Uninvisible._screenToImage(matrix, e.pageX, e.pageY);
 	};
 
-	handleTouchMove = _.throttle(function(e){
+	handleTouchMove = throttle(function(e){
 		if(isZooming === true) return;
 
 		// applied to a clone of the matrix so the next move resets
@@ -314,7 +315,7 @@ export function _initTrackingTouch(){
 	this.imageElement.addEventListener("touchmove", handleTouchMove);
 
 	let onCloseView = function(){
-		Uninvisible.removeListener('close:start', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
 		Uninvisible.imageElement.removeEventListener("touchmove", handleTouchMove);
 		Uninvisible.touch.off('pinchstart', onPinchStart);
 		Uninvisible.touch.off('pinchmove', onPinchMove);

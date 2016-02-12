@@ -1,13 +1,15 @@
-import * as _ from 'underscore';
+import throttle from 'lodash/throttle';
+import extend from 'lodash/extend';
+import each from 'lodash/each';
 import closest from "closest";
 import Touch from 'hammerjs';
 import Paper from "../../vendor/paper";
 
 export function setOptions(options) {
-	_.extend(this.options, options);
+	extend(this.options, options);
 
 	if(options.disableClick){
-		this.emit('disableclick');
+		this.trigger('disableclick');
 	}
 	return this;
 }
@@ -49,7 +51,7 @@ export function _setupDocument(doc) {
 	// find all links in the document and add click events
 	var Uninvisible = this;
 
-	var onWindowResize = _.throttle(function(){
+	var onWindowResize = throttle(function(){
 		if(Uninvisible.isOpen) Uninvisible.close();
 
 		// ToDo: reset image rather than close Uninvisible
@@ -115,7 +117,7 @@ export function _setupCloseListener(){
 
 	var onCloseView = function(){
 		this.touch.off('tap', closeImg);
-		Uninvisible.removeListener('close:start', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
 	};
 
 	Uninvisible.on('close:start', onCloseView);
@@ -407,7 +409,7 @@ export function setupUninvisibleCSS(){
 export function destroy(){
 	if(this.isOpen) this.closeViewerImmediately();
 	this._removeView();
-	this.emit('destroy');
+	this.trigger('destroy');
 }
 
 export function _reset(){
@@ -435,7 +437,7 @@ export function _setupAdditionalImageLayers(){
 
 		var images = img.dataset.uninvisibleAddition.split(',');
 
-		_.each(images, function(i){
+		each(images, function(i){
 			imgData = i.split('|');
 
 			additions.push({
@@ -460,7 +462,7 @@ export function _setupAdditionalImageLayers(){
 	var bgPositionCSS = "left top";
 	var bgSizeCSS = "100%";
 
-	_.each(additions, addImage);
+	each(additions, addImage);
 
 	function addImage(imageData){
 		if(!imageData.url) return;

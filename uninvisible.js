@@ -1,7 +1,8 @@
 'use strict';
 
-import * as _ from 'underscore';
-import EventEmitter from 'events';
+// import * as _ from 'underscore';
+import clone from 'lodash/clone';
+import extend from 'lodash/extend';
 import domready from "domready";
 import * as setup from './setup.js';
 import * as openClose from './open-close.js';
@@ -19,8 +20,7 @@ import * as utils from './utils.js';
 
 class UnInVisible extends EventEmitter {
 	constructor(options) {
-		super();
-		this.options = _.extend(_.clone(UnInVisible.defaults), (options || {}));
+		this.options = extend(clone(UnInVisible.defaults), (options || {}));
 		domready(this._init.bind(this));
 	}
 }

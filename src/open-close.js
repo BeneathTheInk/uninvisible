@@ -56,13 +56,13 @@ export function open(img, options){
 			Uninvisible._initTrackingDesktop();
 		}
 
-		Uninvisible.emit('open');
+		Uninvisible.trigger('open');
 		if(typeof options.onOpen === 'function') options.onOpen();
 	}
 }
 export function _open(){
 	var Uninvisible = this;
-	Uninvisible.emit('open:start');
+	Uninvisible.trigger('open:start');
 
 	Uninvisible._resetMatrix();
 	Uninvisible._setToImgLocation();
@@ -80,7 +80,7 @@ export function _close(options){
 	var Uninvisible = this;
 	Uninvisible._turnOnTransitions();
 	Uninvisible.isAnimating = true;
-	this.emit('close:start');
+	this.trigger('close:start');
 
 	Uninvisible._addAnimationCompleteListener(_onCloseComplete);
 	Uninvisible._setToImgLocation();
@@ -117,7 +117,7 @@ export function _close(options){
 		if(typeof Uninvisible.currentImageOptions.onClose === 'function') Uninvisible.currentImageOptions.onClose();
 		Uninvisible.currentImageOptions = {};
 
-		Uninvisible.emit('close');
+		Uninvisible.trigger('close');
 	}
 }
 
@@ -281,7 +281,7 @@ export function _setToImgLocation(){
 export function closeViewerImmediately(){
 	this.container.style.display = 'none';
 	this._removeView();
-	this.emit('close:immediately');
-	this.emit('close:start');
+	this.trigger('close:immediately');
+	this.trigger('close:start');
 	this._reset();
 }
