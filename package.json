@@ -26,7 +26,7 @@
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "lint": "jshint src/*.js uninvisible.js",
     "build": "gulp && node-sass uninvisible.scss > dist/uninvisible.css",
-    "test": "gulp && browserify index.js --basedir test/ --debug | tape-run"
+    "test": "npm run build && browserify index.js --basedir test/ --debug | tape-run"
   },
   "devDependencies": {
     "babel-preset-es2015": "~6.1.18",
