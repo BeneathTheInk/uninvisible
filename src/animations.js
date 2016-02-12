@@ -1,5 +1,7 @@
 import raf from 'raf';
-import * as _  from 'underscore';
+import throttle from 'lodash/throttle';
+import debounce from 'lodash/debounce';
+var Point = require('./matrix-lib').Point;
 
 export function _initTrackingDesktop(){
 	let Uninvisible = this;
@@ -33,60 +35,51 @@ export function _initTrackingDesktop(){
 		curScale = matrix.decompose().scaling.y;
 	}
 
-	let followMouse = _.throttle(function(e){
-		if(Uninvisible.orientation < 2) return;
+	let followMouse = throttle(function(e){
+		if(curScale <= 1) return;// if(Uninvisible.orientation < 2) return;
 
 		xDestPercent = (e.clientX / window.innerWidth) * 100;
 		yDestPercent = (e.clientY / window.innerHeight) * 100;
 	}, 1000/30);
 
 	function onWheelZoom(){
-		Uninvisible.emit('stoptracking');
+		Uninvisible.trigger('stoptracking');
 		Uninvisible._initGrabZoom();
 	}
 
 	const SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
 	function positionImage(){
 		curScale = matrix.decompose().scaling.y;
-		switch(Uninvisible.orientation){
-			case 0:
-			case 1:
-				break;
-			// HORIZONTAL
-			case 2:
-			case 4:
-				positionX();
-				break;
-			// VERTICAL
-			case 3:
-			case 5:
-				positionY();
-				break;
-			// FREE SCROLL
-			case 6:
-				positionX();
-				positionY();
-				break;
-			}
 
-			matrix.translate(x, y);
-			Uninvisible._transformCSS(matrix);
+		positionX();
+		positionY();
+
+		matrix.translate(new Point(x, y));
+
+		Uninvisible._transformCSS(matrix);
 	}
 
 	function positionX(){
+		scaledWidth = imgW * curScale;
+
+		// TODO enable slide and invert when smaller than window
+		if(scaledWidth < window.innerWidth) return;
+
 		xPercent = xPercent + ((xDestPercent - xPercent) * SLIDE_SPEED);
 		if(xPercent < 0) xDestPercent = (xDestPercent * SLIDE_SPEED);
 		if(xPercent > 100) xDestPercent = xDestPercent + ((100 - xDestPercent) * SLIDE_SPEED);
 
-		if(xPercent < 50){
+		if(xPercent < 50){// || scaledWidth < window.innerWidth
 			expandByX = (50 - xPercent) / 100 * window.innerWidth / 2;
 		} else {
 			expandByX = -(50 - (100 - xPercent)) / 100 * window.innerWidth / 2;
 		}
 
-		scaledWidth = imgW * curScale;
-
 		newTx = (window.innerWidth / 2) - (((scaledWidth + expandByX) / 2) - ((scaledWidth - window.innerWidth) * (xPercent / 100)));
+
+// TODO invert slide when smaller than window
+// if(scaledWidth < window.innerWidth) newTx = 100 - newTx; //
+
 		newTx /= curScale;
 
 		x = currTx - newTx;
@@ -95,6 +88,10 @@ export function _initTrackingDesktop(){
 	}
 
 	function positionY(){
+		scaledHeight = imgH * curScale;
+		// TODO enable and invert slide when smaller than window
+		if(scaledHeight < window.innerHeight) return;
+
 		yPercent = yPercent + ((yDestPercent - yPercent) * SLIDE_SPEED);
 		if(yPercent < 0) yDestPercent = (yDestPercent * SLIDE_SPEED);
 		if(yPercent > 100) yDestPercent = yDestPercent + ((100 - yDestPercent) * SLIDE_SPEED);
@@ -105,7 +102,6 @@ export function _initTrackingDesktop(){
 			expandByY = -(50 - (100 - yPercent)) / 100 * window.innerHeight / 2;
 		}
 
-		scaledHeight = imgH * curScale;
 		newTy = (window.innerHeight / 2) - (((scaledHeight + expandByY) / 2) - ((scaledHeight - window.innerHeight) * (yPercent / 100)));
 		newTy /= curScale;
 
@@ -116,6 +112,7 @@ export function _initTrackingDesktop(){
 
 	addEventListener('mousemove', followMouse);
 	document.addEventListener('wheel', onWheelZoom);
+
 	loopDesktop();
 
 	let looper;
@@ -125,10 +122,11 @@ export function _initTrackingDesktop(){
 	}
 
 	let onCloseView = function(){
-		Uninvisible.removeListener('close:start', onCloseView);
-		Uninvisible.removeListener('stoptracking', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
+		Uninvisible.off('stoptracking', onCloseView);
 		removeEventListener('mousemove', followMouse);
 		document.removeEventListener('wheel', onWheelZoom);
+
 		curX = curY = 0;
 		raf.cancel(looper);
 	};
@@ -139,7 +137,6 @@ export function _initTrackingDesktop(){
 
 export function _initGrabZoom(){
 	let Uninvisible = this;
-	Uninvisible.orientation = 6;
 
 	Uninvisible.container.classList.add('grab');
 
@@ -150,55 +147,65 @@ export function _initGrabZoom(){
 	let matrix = this.matrix;
 
 	let origin, moveX, moveY, curX, curY;
+	let curScale = matrix.decompose().scaling.y;
 
-	let onWheelEnd = _.debounce(function(){
+	let onWheelEnd = debounce(function(){
+		if(!isZooming) return;
+
 		origin = null;
 		isZooming = false;
 		Uninvisible._checkImagePositioning();
-	}, 20);
+	}, 600);
 
 	function onWheelZoom(e){
 		e.preventDefault();
 
+		if(isDragging) return (isZooming = false);
+
 		isZooming = true;
 
-		if(!origin) {
-			origin = Uninvisible._screenToImage(matrix, e.clientX, e.clientY);
-		}
+		if(!origin) origin = Uninvisible._screenToImage(matrix, e.clientX, e.clientY);
 
 		let change = 1 - (e.deltaY * 0.001);
 
-		let curScale = matrix.decompose().scaling.y;
-		if(curScale * change < 0.6 || curScale * change > 50) return Uninvisible._checkImagePositioning();
+		curScale = matrix.decompose().scaling.y;
+
+		if(curScale * change < Math.min(0.6, Uninvisible.dimensions.initialScale) || curScale * change > 8){
+			return;
+		}
 
 		matrix.scale(change, origin);
+
 		Uninvisible._transformCSS(matrix);
 
 		onWheelEnd();
 	}
 
 	onMouseDown = function(e){
-		if(isZooming === true) return;
+		// if(isZooming === true) return;
 
 		Uninvisible.container.classList.add('grabbing');
 		isDragging = true;
+		isZooming = false;
 
 		curX = e.screenX;
 		curY = e.screenY;
+
+		curScale = matrix.decompose().scaling.y;
 
 		Uninvisible.container.addEventListener('mousemove', onMouseMove);
 	};
 
-	onMouseMove = _.throttle(function(e){
+	onMouseMove = throttle(function(e){
 		if(isZooming === true) return;
 
-		moveX = e.screenX - curX;
-		moveY = e.screenY - curY;
+		moveX = (e.screenX - curX) / curScale;
+		moveY = (e.screenY - curY) / curScale;
 
 		curX = e.screenX;
 		curY = e.screenY;
 
-		matrix.translate(moveX, moveY);
+		matrix.translate(new Point(moveX, moveY));
 
 		Uninvisible._transformCSS(matrix);
 	}, 1000/30);
@@ -215,15 +222,17 @@ export function _initGrabZoom(){
 	Uninvisible.container.addEventListener('mousedown', onMouseDown);
 	Uninvisible.container.addEventListener('mouseup', onMouseUp);
 	Uninvisible.container.addEventListener('mouseleave', onMouseUp);
-	document.addEventListener('wheel', onWheelZoom);
+
+	var throttledOnWheelZoom = throttle(onWheelZoom, 20);
+	document.addEventListener('wheel', throttledOnWheelZoom);
 
 	let onCloseView = function(){
-		Uninvisible.removeListener('close:start', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
 		Uninvisible.container.removeEventListener('mousemove', onMouseMove);
 		Uninvisible.container.removeEventListener('mousedown', onMouseDown);
 		Uninvisible.container.removeEventListener('mouseup', onMouseUp);
 		Uninvisible.container.removeEventListener('mouseleave', onMouseUp);
-		document.removeEventListener('wheel', onWheelZoom);
+		document.removeEventListener('wheel', throttledOnWheelZoom);
 		Uninvisible.container.classList.remove('grabbing');
 	};
 
@@ -268,7 +277,7 @@ export function _initTrackingTouch(){
 		origin = Uninvisible._screenToImage(matrix, e.pageX, e.pageY);
 	};
 
-	handleTouchMove = _.throttle(function(e){
+	handleTouchMove = throttle(function(e){
 		if(isZooming === true) return;
 
 		// applied to a clone of the matrix so the next move resets
@@ -295,7 +304,7 @@ export function _initTrackingTouch(){
 	this.imageElement.addEventListener("touchmove", handleTouchMove);
 
 	let onCloseView = function(){
-		Uninvisible.removeListener('close:start', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
 		Uninvisible.imageElement.removeEventListener("touchmove", handleTouchMove);
 		Uninvisible.touch.off('pinchstart', onPinchStart);
 		Uninvisible.touch.off('pinchmove', onPinchMove);

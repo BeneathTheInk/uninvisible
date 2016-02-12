@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en-US">
+	<head>
+		<meta charset="UTF-8" />
+		<!-- <link rel="stylesheet" type="text/css" href="../dist/uninvisible.css"> -->
+		<style>
+			* {
+				box-sizing: border-box;
+			}
+
+			html {
+				width: 100%;
+				height: 100%;
+			}
+
+			body {
+				background-color: black;
+				width: 100%;
+				height: 100%;
+			}
+
+			main {
+				float: left;
+				width: 60%;
+				margin: auto;
+				background-color: white;
+				padding: 100px 3%;
+			}
+
+			.side {
+				float: left;
+				width: 20%;
+				height: 100%;
+				min-height: 1px;
+				padding: 3%;
+				color: white;
+			}
+
+			img {
+				max-width: 100%;
+			}
+
+			.pics {
+				border: 1px solid lightgray;
+				padding: 25px;
+			}
+
+			.pics img {
+				width: 150px;
+			}
+
+			.center {
+				margin: auto;
+				width: 100%;
+				text-align: center;
+			}
+
+			#mountains {
+				width: 100%;
+				height: 200px;
+				font-size: 2.2em;
+				background-image: url(images/1-5.JPG);
+				color: #613434;
+				padding: 10px;
+			}
+
+			.bg-cover{
+				background-position: center;
+				background-size: cover;
+				background-repeat: no-repeat;
+			}
+
+		</style>
+	</head>
+	<body>
+		<div class="side">
+			<div id="mountains" data-uninvisible class="bg-cover">Mountains</div>
+			<div data-uninvisible data-uninvisible-target="mountains">View them.</div>
+			<ul>
+				<li data-uninvisible="true" data-uninvisible-target="image-1">Image 1</li>
+				<li data-uninvisible="true" data-uninvisible-target="image-2">Image 1</li>
+				<li data-uninvisible="true" data-uninvisible-target="image-3">Image 1</li>
+			</ul>
+		</div>
+		<main>
+			<h1>Uninvisible</h1>
+			<div class="pics center">
+				<img class="uninvisible" src="./images/1.JPG" data-uninvisible />
+				<img class="uninvisible" src="./images/3.png" data-uninvisible />
+				<img class="uninvisible" src="./images/5.JPG" data-uninvisible data-uninvisible-url="./images/1-5.JPG"  />
+			</div>
+
+			<div class="center">
+				<img style="width: 100%;" src="./images/small.png" data-uninvisible class="uninvisible" data-uninvisible-url="./images/mega.png" data-uninvisible-title="Magnificent Mountains" data-uninvisible-text="Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."/>
+			</div>
+
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<br>
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<br>
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+				<div class="pics center">
+				<img class="uninvisible" src="./images/1.JPG" data-uninvisible data-uninvisible-url="./images/1-5.JPG" />
+				<img class="uninvisible" src="./images/3.png" data-uninvisible />
+				<img class="uninvisible" src="./images/5.JPG" data-uninvisible />
+			</div>
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<br>
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+				<div class="pics center">
+				<img class="uninvisible" src="./images/1.JPG" data-uninvisible />
+				<img class="uninvisible" src="./images/3.png" data-uninvisible />
+				<img class="uninvisible" src="./images/5.JPG" data-uninvisible data-uninvisible-url="./images/1-5.JPG" />
+			</div>
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<br>
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<br>
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			</main>
+		<div class="side">
+			<img id="image-1" class="uninvisible" src="./images/2.png" data-uninvisible data-uninvisible-url="./images/1-5.JPG" />
+			<img id="image-2" class="uninvisible" src="./images/4.JPG" data-uninvisible data-uninvisible-addition="./images/hiker.png|150px|150px|7%,./images/goat.jpeg|80%|80%|15%" />
+			<img id="image-3" class="uninvisible" src="./images/small.png" data-uninvisible />
+		</div>
+
+		<script type="text/javascript" src="../dist/uninvisible.js"></script>
+		<script type="text/javascript">
+			document.addEventListener('DOMContentLoaded', function(){
+				var u = window.UnInVisible;
+				u.setupUninvisibleCSS();
+				u.setOptions({
+					// disableClick: true,
+					// theme: null,
+					// animationSpeed: null,
+					// trackSpeed: null
+				});
+			});
+		</script>
+	</body>
+</html>

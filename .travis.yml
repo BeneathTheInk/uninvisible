@@ -1,5 +1,9 @@
 sudo: false
 language: node_js
+addons:
+  apt:
+    packages:
+      - xvfb
 cache:
   directories:
     - node_modules
@@ -9,12 +13,16 @@ node_js:
   - '5'
 before_install:
   - npm i -g npm@^3.0.0
+install:
+  - export DISPLAY=':99.0'
+  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+  - npm install
 before_script:
   - npm run lint
 script: npm run $COMMAND
 env:
   matrix:
-    - COMMAND='build'
+    - COMMAND='test'
 after_success:
   - npm run semantic-release
 branches:

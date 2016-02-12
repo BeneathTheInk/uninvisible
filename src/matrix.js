@@ -1,4 +1,4 @@
-import Paper from "../../vendor/paper";
+let Point = require('./matrix-lib').Point;
 
 // converts a point on the screen to a point on the image
 // origin of image is the center, not the top-left corner like the window
@@ -14,7 +14,7 @@ export function _screenToImage(matrix, x, y) {
 		x = x.x;
 	}
 
-	return matrix.inverseTransform(new Paper.Point(x - screenCenterX, y - screenCenterY));
+	return matrix.inverseTransform(new Point(x - screenCenterX, y - screenCenterY));
 }
 
 // transform a matrix according to an event
@@ -31,6 +31,7 @@ export function _applyToMatrix(matrix, origin, x, y, scale, preventTransform) {
 
 	// rasterize the matrix and apply it
 	var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
+
 	if(!preventTransform) this._transformCSS(t);
 }
 
@@ -76,14 +77,9 @@ export function _checkImagePositioning(){
 	var changeCss = false;
 	// var img = Uninvisible.image;
 
-	if(scale < 1){
-		// TODO make it so that a small image isn't forced to full screen on zoom end...
-		// if(img.naturalWidth < window.innerWidth || img.naturalHeight < window.innerHeight){
-		// 	console.log('smaller');
-		// } else {
-			changeCss = true;
-			this._resetMatrix();
-		// }
+	if(scale < Math.min(1, Uninvisible.dimensions.initialScale)){
+		changeCss = true;
+		this._resetMatrix(null, Math.max(1, Math.min(0.6, Uninvisible.dimensions.initialScale)));
 	}
 
 	var location = this._getImageToWindowPosition();
@@ -108,14 +104,16 @@ export function _checkImagePositioning(){
 	}
 }
 
-export function _resetMatrix(m){
+export function _resetMatrix(m, scale){
 	var matrix = this.matrix;
-	m = m || [];
 
-	matrix.a = m[0] || 1;
+	m = m || [];
+	scale = scale || 1;
+
+	matrix.a = m[0] || scale;
 	matrix.b = m[1] || 0;
 	matrix.c = m[2] || 0;
-	matrix.d = m[3] || 1;
+	matrix.d = m[3] || scale;
 	matrix.tx = m[4] || 0;
 	matrix.ty = m[5] || 0;
 

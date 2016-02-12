@@ -1,14 +1,15 @@
-import * as _ from 'underscore';
+import throttle from 'lodash/throttle';
+import extend from 'lodash/extend';
+import each from 'lodash/each';
 import closest from "closest";
 import Touch from 'hammerjs';
-import Paper from "../../vendor/paper";
+let Matrix = require('./matrix-lib').Matrix;
 
 export function setOptions(options) {
-	_.extend(this.options, options);
+	extend(this.options, options);
 
-	if(options.disableClick){
-		this.emit('disableclick');
-	}
+	if(options.disableClick) this.disableClick();
+	if(options.enableClick) this.enableClick();
 	return this;
 }
 
@@ -34,7 +35,7 @@ export function _init(){
 		// 5 = fullscreen vertical
 		// 6 = fullscreen free scroll
 
-	this.matrix = new Paper.Matrix();
+	this.matrix = new Matrix();
 
 	this._createView();
 	this._addTouch();
@@ -43,13 +44,12 @@ export function _init(){
 }
 
 export function _setupDocument(doc) {
-	if(doc) this.options.document = doc;
-	doc = doc || document;
+	this.options.document = doc || document;
 
 	// find all links in the document and add click events
 	var Uninvisible = this;
 
-	var onWindowResize = _.throttle(function(){
+	var onWindowResize = throttle(function(){
 		if(Uninvisible.isOpen) Uninvisible.close();
 
 		// ToDo: reset image rather than close Uninvisible
@@ -61,11 +61,12 @@ export function _setupDocument(doc) {
 
 	window.addEventListener("resize", onWindowResize);
 
-	if(this.options.disableClick !== true) Uninvisible.addDocumentClickListener(doc);
+	if(this.options.disableClick !== true) Uninvisible.enableClick();
 }
 
-export function addDocumentClickListener(doc) {
+export function enableClick() {
 	let Uninvisible = this;
+	let doc = Uninvisible.options.document;
 
 	doc.addEventListener("click", onClick);
 
@@ -84,6 +85,10 @@ export function addDocumentClickListener(doc) {
 			Uninvisible.open(target);
 		}
 	}
+}
+
+export function disableClick() {
+	this.trigger('disableclick');
 }
 
 export function _addTouch(){
@@ -115,7 +120,7 @@ export function _setupCloseListener(){
 
 	var onCloseView = function(){
 		this.touch.off('tap', closeImg);
-		Uninvisible.removeListener('close:start', onCloseView);
+		Uninvisible.off('close:start', onCloseView);
 	};
 
 	Uninvisible.on('close:start', onCloseView);
@@ -407,7 +412,7 @@ export function setupUninvisibleCSS(){
 export function destroy(){
 	if(this.isOpen) this.closeViewerImmediately();
 	this._removeView();
-	this.emit('destroy');
+	this.trigger('destroy');
 }
 
 export function _reset(){
@@ -435,7 +440,7 @@ export function _setupAdditionalImageLayers(){
 
 		var images = img.dataset.uninvisibleAddition.split(',');
 
-		_.each(images, function(i){
+		each(images, function(i){
 			imgData = i.split('|');
 
 			additions.push({
@@ -460,7 +465,7 @@ export function _setupAdditionalImageLayers(){
 	var bgPositionCSS = "left top";
 	var bgSizeCSS = "100%";
 
-	_.each(additions, addImage);
+	each(additions, addImage);
 
 	function addImage(imageData){
 		if(!imageData.url) return;
