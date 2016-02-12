@@ -112,6 +112,7 @@ export function _initTrackingDesktop(){
 
 	addEventListener('mousemove', followMouse);
 	document.addEventListener('wheel', onWheelZoom);
+
 	loopDesktop();
 
 	let looper;
@@ -125,6 +126,7 @@ export function _initTrackingDesktop(){
 		Uninvisible.off('stoptracking', onCloseView);
 		removeEventListener('mousemove', followMouse);
 		document.removeEventListener('wheel', onWheelZoom);
+
 		curX = curY = 0;
 		raf.cancel(looper);
 	};
@@ -146,6 +148,7 @@ export function _initGrabZoom(){
 	let matrix = this.matrix;
 
 	let origin, moveX, moveY, curX, curY;
+	let curScale = matrix.decompose().scaling.y;
 
 	let onWheelEnd = debounce(function(){
 		origin = null;
@@ -164,7 +167,7 @@ export function _initGrabZoom(){
 
 		let change = 1 - (e.deltaY * 0.001);
 
-		let curScale = matrix.decompose().scaling.y;
+		curScale = matrix.decompose().scaling.y;
 
 		if(curScale * change < Math.min(0.6, Uninvisible.dimensions.initialScale) || curScale * change > 10){
 			return;
@@ -187,14 +190,16 @@ export function _initGrabZoom(){
 		curX = e.screenX;
 		curY = e.screenY;
 
+		curScale = matrix.decompose().scaling.y;
+
 		Uninvisible.container.addEventListener('mousemove', onMouseMove);
 	};
 
 	onMouseMove = throttle(function(e){
 		if(isZooming === true) return;
 
-		moveX = e.screenX - curX;
-		moveY = e.screenY - curY;
+		moveX = (e.screenX - curX) / curScale;
+		moveY = (e.screenY - curY) / curScale;
 
 		curX = e.screenX;
 		curY = e.screenY;
