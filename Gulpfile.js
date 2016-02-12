@@ -34,8 +34,8 @@ function babelifyIndex(done){
 function bundle(done) {
   var browserifyOptions = {
     entries: ['./dist/compiled/uninvisible.js'],
-    standalone: "UnInVisible",
-    // debug: true
+    standalone: "UnInVisible"
+    // debug: true,
   };
 
   var b = browserify(browserifyOptions);
