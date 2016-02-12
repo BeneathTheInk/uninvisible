@@ -1,4 +1,4 @@
-export class Point{
+class Point{
 	constructor(x, y){
 		this.x = x || 0;
 		this.y = y == null ? this.x : y || 0;
@@ -9,7 +9,7 @@ export class Point{
     }
 }
 
-export class Matrix{
+class Matrix{
 	constructor(){
 		this.a = 1;
 		this.b = 0;
@@ -22,10 +22,10 @@ export class Matrix{
 	scale(scale, center){
 		if (center)
             this.translate(center);
-        this.a *= scale.x;
-        this.c *= scale.x;
-        this.b *= scale.y;
-        this.d *= scale.y;
+        this.a *= scale;//scale.x;
+        this.c *= scale;//scale.x;
+        this.b *= scale;//scale.y;
+        this.d *= scale;//scale.y;
         if (center)
             this.translate(center.negate());
 
@@ -97,3 +97,8 @@ export class Matrix{
         };
 	}
 }
+
+module.exports = {
+	Point: Point,
+	Matrix: Matrix
+};

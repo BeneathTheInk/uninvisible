@@ -1,4 +1,4 @@
-import Paper from "../../vendor/paper";
+let Point = require('./matrix-lib').Point;
 
 // converts a point on the screen to a point on the image
 // origin of image is the center, not the top-left corner like the window
@@ -14,7 +14,7 @@ export function _screenToImage(matrix, x, y) {
 		x = x.x;
 	}
 
-	return matrix.inverseTransform(new Paper.Point(x - screenCenterX, y - screenCenterY));
+	return matrix.inverseTransform(new Point(x - screenCenterX, y - screenCenterY));
 }
 
 // transform a matrix according to an event
@@ -31,6 +31,7 @@ export function _applyToMatrix(matrix, origin, x, y, scale, preventTransform) {
 
 	// rasterize the matrix and apply it
 	var t = [ matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty ].join(",");
+
 	if(!preventTransform) this._transformCSS(t);
 }
 
@@ -105,6 +106,7 @@ export function _checkImagePositioning(){
 
 export function _resetMatrix(m, scale){
 	var matrix = this.matrix;
+
 	m = m || [];
 	scale = scale || 1;
 

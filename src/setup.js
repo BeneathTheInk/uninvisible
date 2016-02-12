@@ -3,7 +3,7 @@ import extend from 'lodash/extend';
 import each from 'lodash/each';
 import closest from "closest";
 import Touch from 'hammerjs';
-import Paper from "../../vendor/paper";
+let Matrix = require('./matrix-lib').Matrix;
 
 export function setOptions(options) {
 	extend(this.options, options);
@@ -36,7 +36,7 @@ export function _init(){
 		// 5 = fullscreen vertical
 		// 6 = fullscreen free scroll
 
-	this.matrix = new Paper.Matrix();
+	this.matrix = new Matrix();
 
 	this._createView();
 	this._addTouch();

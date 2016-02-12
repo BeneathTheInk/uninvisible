@@ -1,6 +1,7 @@
 import raf from 'raf';
 import throttle from 'lodash/throttle';
 import debounce from 'lodash/debounce';
+var Point = require('./matrix-lib').Point;
 
 export function _initTrackingDesktop(){
 	let Uninvisible = this;
@@ -49,31 +50,12 @@ export function _initTrackingDesktop(){
 	const SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
 	function positionImage(){
 		curScale = matrix.decompose().scaling.y;
-		// switch(6){//switch(Uninvisible.orientation){
-		// 	case 0:
-		// 	case 1:
-		// 		break;
-		// 	// HORIZONTAL
-		// 	case 2:
-		// 	case 4:
-		// 		positionX();
-		// 		break;
-		// 	// VERTICAL
-		// 	case 3:
-		// 	case 5:
-		// 		positionY();
-		// 		break;
-		// 	// FREE SCROLL
-		// 	case 6:
-		// 		positionX();
-		// 		positionY();
-		// 		break;
-		// 	}
 
 		positionX();
 		positionY();
 
-		matrix.translate(x, y);
+		matrix.translate(new Point(x, y));
+
 		Uninvisible._transformCSS(matrix);
 	}
 
@@ -181,8 +163,8 @@ export function _initGrabZoom(){
 		}
 
 		let change = 1 - (e.deltaY * 0.001);
+
 		let curScale = matrix.decompose().scaling.y;
-		// console.log(change, curScale);
 
 		if(curScale * change < Math.min(0.6, Uninvisible.dimensions.initialScale) || curScale * change > 10){
 			return;
@@ -190,6 +172,7 @@ export function _initGrabZoom(){
 		}
 
 		matrix.scale(change, origin);
+
 		Uninvisible._transformCSS(matrix);
 
 		onWheelEnd();
@@ -216,7 +199,7 @@ export function _initGrabZoom(){
 		curX = e.screenX;
 		curY = e.screenY;
 
-		matrix.translate(moveX, moveY);
+		matrix.translate(new Point(moveX, moveY));
 
 		Uninvisible._transformCSS(matrix);
 	}, 1000/30);
