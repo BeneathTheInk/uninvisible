@@ -2,49 +2,51 @@
 // TODO sass and copy css into dist
 
 var gulp = require('gulp');
+var sourcemaps = require('gulp-sourcemaps');
+var rollup = require('gulp-rollup');
 var babel = require('gulp-babel');
-var browserify = require('browserify');
-var source = require('vinyl-source-stream');
-var buffer = require('vinyl-buffer');
+var rollupIncludePaths = require('rollup-plugin-includepaths');
 var minify = require('gulp-minify');
+var sass = require('gulp-sass');
+var util = require('gulp-util');
+var minifyCss = require('gulp-minify-css');
+var rename = require('gulp-rename');
 
-gulp.task('babelifySource', babelifySource);
-gulp.task('babelifyIndex', babelifyIndex);
-gulp.task('bundle', ['babelifySource', 'babelifyIndex'], bundle);
-gulp.task('default', ['bundle']);
 
-function babelifySource(done){
-    var stream = gulp.src('./src/*.js')
-        .pipe(babel({
-            presets: ['es2015']
-        }))
-        .pipe(gulp.dest('dist/compiled'));
-	stream.on('end', done);
-}
+gulp.task('rollup', bundle);
+gulp.task('sass', buildCSS);
+gulp.task('minify-css', ['sass'], minCss);
+gulp.task('css', ['sass', 'minify-css']);
+gulp.task('default', ['rollup', 'css']);
 
-function babelifyIndex(done){
-    var stream = gulp.src('./uninvisible.js')
-        .pipe(babel({
-            presets: ['es2015']
-        }))
-        .pipe(gulp.dest('dist/compiled'));
-	stream.on('end', done);
-}
+var includePathsOptions = {
+    paths: ['./src']
+};
 
-function bundle(done) {
-  var browserifyOptions = {
-    entries: ['./dist/compiled/uninvisible.js'],
-    standalone: "UnInVisible"
-    // debug: true,
-  };
-
-  var b = browserify(browserifyOptions);
-
-  var stream = b.bundle()
-    .pipe(source('uninvisible.js'))
-    .pipe(buffer())
+function bundle(){
+    return gulp.src('./src/uninvisible.js')
+    .pipe(rollup({
+        sourceMap: true,
+        plugins: [
+            rollupIncludePaths(includePathsOptions)
+        ]
+    }))
+    .pipe(babel())
     .pipe(minify())
+    .on('error', util.log)
+    .pipe(sourcemaps.write('.'))
     .pipe(gulp.dest('dist'));
+}
 
-    stream.on('end', done);
+function buildCSS(){
+    return gulp.src('./src/uninvisible.scss')
+        .pipe(sass().on('error', sass.logError))
+        .pipe(gulp.dest('./dist'));
+}
+
+function minCss(){
+    return gulp.src('./dist/uninvisible.css')
+        .pipe(minifyCss())
+        .pipe(rename('uninvisible.min.css'))
+        .pipe(gulp.dest('dist'));
 }

@@ -34,5 +34,5 @@ UnInVisible.defaults = {
 
 extend(UnInVisible.prototype, setup, openClose, matrix, animations, caption, utils, EventEmitter);
 
-module.exports = new UnInVisible();
-// export default new UnInVisible(); // exports es6 module, but then in the browser you get UnInVisible = Object {default: UnInVisible, __esModule: true}
+// module.exports = new UnInVisible();
+export default new UnInVisible(); // exports es6 module, but then in the browser you get UnInVisible = Object {default: UnInVisible, __esModule: true}
