@@ -1,4 +1,4 @@
-class Point{
+export class Point{
 	constructor(x, y){
 		this.x = x || 0;
 		this.y = y == null ? this.x : y || 0;
@@ -9,7 +9,7 @@ class Point{
     }
 }
 
-class Matrix{
+export class Matrix{
 	constructor(){
 		this.a = 1;
 		this.b = 0;
@@ -98,7 +98,7 @@ class Matrix{
 	}
 }
 
-module.exports = {
-	Point: Point,
-	Matrix: Matrix
-};
+// module.exports = {
+// 	Point: Point,
+// 	Matrix: Matrix
+// };

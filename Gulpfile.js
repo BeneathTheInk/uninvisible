@@ -1,41 +1,71 @@
 'use strict';
-// TODO sass and copy css into dist
 
 var gulp = require('gulp');
 var sourcemaps = require('gulp-sourcemaps');
-var rollup = require('gulp-rollup');
-var babel = require('gulp-babel');
-var rollupIncludePaths = require('rollup-plugin-includepaths');
 var minify = require('gulp-minify');
 var sass = require('gulp-sass');
-var util = require('gulp-util');
 var minifyCss = require('gulp-minify-css');
 var rename = require('gulp-rename');
 
+var roll = require('rollup');
+var babelPlugin = require('rollup-plugin-babel');
+var nodeResolve = require('rollup-plugin-node-resolve');
+var commonjs = require('rollup-plugin-commonjs');
 
-gulp.task('rollup', bundle);
-gulp.task('sass', buildCSS);
-gulp.task('minify-css', ['sass'], minCss);
+gulp.task('default', ['js', 'css']);
+
+gulp.task('js', ['bundle', 'standalone', 'minBundle', 'minStandalone']);
+    gulp.task('bundle', bundle);
+    gulp.task('standalone', standalone);
+    gulp.task('minBundle', ['bundle'], minBundle);
+    gulp.task('minStandalone', ['standalone'], minStandalone);
+
 gulp.task('css', ['sass', 'minify-css']);
-gulp.task('default', ['rollup', 'css']);
+    gulp.task('sass', buildCSS);
+    gulp.task('minify-css', ['sass'], minCss);
 
-var includePathsOptions = {
-    paths: ['./src']
+var rollupOptions = {
+    entry: './src/uninvisible.js',
+    plugins: [
+        nodeResolve({
+            jsnext: false,
+            main: true,
+            browser: true
+        }),
+        commonjs({
+            exclude: [ "src/**" ]
+        }),
+        babelPlugin({
+            exclude: 'node_modules/**'
+        }),
+    ]
 };
 
-function bundle(){
-    return gulp.src('./src/uninvisible.js')
-    .pipe(rollup({
-        sourceMap: true,
-        plugins: [
-            rollupIncludePaths(includePathsOptions)
-        ]
-    }))
-    .pipe(babel())
-    .pipe(minify())
-    .on('error', util.log)
-    .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest('dist'));
+function rollItUp(format, dest, done){
+    roll.rollup(rollupOptions)
+    .then(function(bundle){
+        bundle.write({
+            format: format,
+            moduleName: 'UnInVisible',
+            dest: dest
+        }).then(function(){
+            done();
+        });
+    });
+}
+
+function bundle(done){ return rollItUp('umd', './dist/uninvisible.js', done); }
+function standalone(done){ return rollItUp('iife', './dist/uninvisible_standalone.js', done); }
+function minBundle(done){ return minJs('./dist/uninvisible.js', done); }
+function minStandalone(done){ return minJs('./dist/uninvisible_standalone.js', done); }
+
+function minJs(src, done){
+    var stream = gulp.src(src)
+        .pipe(minify())
+        .pipe(sourcemaps.write('.'))
+        .pipe(gulp.dest('dist'));
+
+    stream.on('end', done);
 }
 
 function buildCSS(){
@@ -47,6 +77,6 @@ function buildCSS(){
 function minCss(){
     return gulp.src('./dist/uninvisible.css')
         .pipe(minifyCss())
-        .pipe(rename('uninvisible.min.css'))
+        .pipe(rename('uninvisible-min.css'))
         .pipe(gulp.dest('dist'));
 }

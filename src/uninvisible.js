@@ -1,6 +1,5 @@
 'use strict';
 
-// import * as _ from 'underscore';
 import clone from 'lodash/clone';
 import extend from 'lodash/extend';
 import EventEmitter from 'backbone-events-standalone';

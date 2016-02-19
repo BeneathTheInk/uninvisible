@@ -1,4 +1,4 @@
-let Matrix = require('./matrix-lib').Matrix;
+import {Matrix} from './matrix-lib';
 
 export function _setImagePosition(p){
 	var img = this.imageElement;

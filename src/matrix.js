@@ -1,4 +1,4 @@
-let Point = require('./matrix-lib').Point;
+import {Point} from './matrix-lib';
 
 // converts a point on the screen to a point on the image
 // origin of image is the center, not the top-left corner like the window

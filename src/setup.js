@@ -3,7 +3,7 @@ import extend from 'lodash/extend';
 import each from 'lodash/each';
 import closest from "closest";
 import Touch from 'hammerjs';
-let Matrix = require('./matrix-lib').Matrix;
+import {Matrix} from './matrix-lib';
 
 export function setOptions(options) {
 	extend(this.options, options);

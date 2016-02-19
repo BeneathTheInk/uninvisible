@@ -1,7 +1,8 @@
 import raf from 'raf';
 import throttle from 'lodash/throttle';
 import debounce from 'lodash/debounce';
-var Point = require('./matrix-lib').Point;
+import {Point} from './matrix-lib';
+
 
 export function _initTrackingDesktop(){
 	let Uninvisible = this;
