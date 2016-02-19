@@ -3,7 +3,6 @@ import throttle from 'lodash/throttle';
 import debounce from 'lodash/debounce';
 import {Point} from './matrix-lib';
 
-
 export function _initTrackingDesktop(){
 	let Uninvisible = this;
 
@@ -37,16 +36,17 @@ export function _initTrackingDesktop(){
 	}
 
 	let followMouse = throttle(function(e){
-		if(curScale <= 1) return;// if(Uninvisible.orientation < 2) return;
+		if(curScale <= 1) return;
 
 		xDestPercent = (e.clientX / window.innerWidth) * 100;
 		yDestPercent = (e.clientY / window.innerHeight) * 100;
 	}, 1000/30);
 
-	function onWheelZoom(){
-		Uninvisible.trigger('stoptracking');
-		Uninvisible._initGrabZoom();
-	}
+	 // zoom, click and drag disabled
+	// function onWheelZoom(){
+	// 	Uninvisible.trigger('stoptracking');
+	// 	Uninvisible._initGrabZoom();
+	// }
 
 	const SLIDE_SPEED = Math.max(Math.min(this.options.trackSpeed, 1), 0.01);
 	function positionImage(){
@@ -112,7 +112,7 @@ export function _initTrackingDesktop(){
 	}
 
 	addEventListener('mousemove', followMouse);
-	document.addEventListener('wheel', onWheelZoom);
+	// document.addEventListener('wheel', onWheelZoom); // zoom, click and drag disabled
 
 	loopDesktop();
 
@@ -126,7 +126,7 @@ export function _initTrackingDesktop(){
 		Uninvisible.off('close:start', onCloseView);
 		Uninvisible.off('stoptracking', onCloseView);
 		removeEventListener('mousemove', followMouse);
-		document.removeEventListener('wheel', onWheelZoom);
+		// document.removeEventListener('wheel', onWheelZoom); // zoom, click and drag disabled
 
 		curX = curY = 0;
 		raf.cancel(looper);
@@ -183,8 +183,6 @@ export function _initGrabZoom(){
 	}
 
 	onMouseDown = function(e){
-		// if(isZooming === true) return;
-
 		Uninvisible.container.classList.add('grabbing');
 		isDragging = true;
 		isZooming = false;
