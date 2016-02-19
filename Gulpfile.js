@@ -1,7 +1,6 @@
 'use strict';
 
 var gulp = require('gulp');
-var sourcemaps = require('gulp-sourcemaps');
 var minify = require('gulp-minify');
 var sass = require('gulp-sass');
 var minifyCss = require('gulp-minify-css');
@@ -13,6 +12,7 @@ var nodeResolve = require('rollup-plugin-node-resolve');
 var commonjs = require('rollup-plugin-commonjs');
 
 gulp.task('default', ['js', 'css']);
+gulp.task('dev', ['bundle', 'standalone', 'sass']);
 
 gulp.task('js', ['bundle', 'standalone', 'minBundle', 'minStandalone']);
     gulp.task('bundle', bundle);
@@ -62,7 +62,6 @@ function minStandalone(done){ return minJs('./dist/uninvisible_standalone.js', d
 function minJs(src, done){
     var stream = gulp.src(src)
         .pipe(minify())
-        .pipe(sourcemaps.write('.'))
         .pipe(gulp.dest('dist'));
 
     stream.on('end', done);

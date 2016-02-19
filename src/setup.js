@@ -27,13 +27,6 @@ export function _init(){
 	this.isAnimating = false;
 	this.isOpen = false;
 	this.orientation = null;
-		// 0 = image is smaller than window
-		// 1 = image is contained within window
-		// 2 = image height smaller, horizontal width larger than window
-		// 3 = image width smaller, vertical height larger than window
-		// 4 = fullscreen horizontal
-		// 5 = fullscreen vertical
-		// 6 = fullscreen free scroll
 
 	this.matrix = new Matrix();
 
@@ -46,17 +39,10 @@ export function _init(){
 export function _setupDocument(doc) {
 	this.options.document = doc || document;
 
-	// find all links in the document and add click events
 	var Uninvisible = this;
 
 	var onWindowResize = throttle(function(){
 		if(Uninvisible.isOpen) Uninvisible.close();
-
-		// ToDo: reset image rather than close Uninvisible
-		// if(Uninvisible.isOpen){
-		// 	Uninvisible._setupImage();
-		// 	Uninvisible._expand();
-		// }
 	}, 500);
 
 	window.addEventListener("resize", onWindowResize);
@@ -94,10 +80,11 @@ export function disableClick() {
 export function _addTouch(){
 	this.touch = window.Hammer = new Touch.Manager(this.container, {});
 
+	// TODO add rotate
 	var pinch = new Touch.Pinch();
 	// var rotate = new Touch.Rotate();
-	var tap = new Touch.Tap();
 	// pinch.recognizeWith(rotate);
+	var tap = new Touch.Tap();
 
 	this.touch.add([pinch, tap]);
 
